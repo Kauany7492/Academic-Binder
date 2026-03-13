@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Planner from './pages/Planner';
 import Notebooks from './pages/Notebooks';
 import NotebookDetail from './pages/NotebookDetail';
+import Books from './pages/Books';
 import Podcasts from './pages/Podcasts';
 import PDFs from './pages/PDFs';
 import './App.css';
@@ -22,6 +23,7 @@ function App() {
               <Route path="/planner" element={<Planner />} />
               <Route path="/notebooks" element={<Notebooks />} />
               <Route path="/notebooks/:id" element={<NotebookDetail />} />
+              <Route path="/books" element={<Books />} />
               <Route path="/podcasts" element={<Podcasts />} />
               <Route path="/pdfs" element={<PDFs />} />
             </Routes>
