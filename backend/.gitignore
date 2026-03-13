@@ -6,5 +6,3 @@ coverage/
 *.log
 uploads/
 audio/
-credentials/*.json
-!credentials/.gitkeep
