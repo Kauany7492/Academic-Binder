@@ -557,4 +557,461 @@ module.exports = (pool) => {
 
       const filePath = req.file.path;
       const mimeType = req.file.mimetype;
-      const shouldSummarize = req.body.summar
+      const shouldSummarize = req.body.summarize === 'true';
+      const caderno_id = req.body.caderno_id || null;
+      let text = '';
+
+      if (mimeType === 'application/pdf' || mimeType === 'text/plain' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        text = await extractTextFromFile(filePath, mimeType);
+      } else {
+        throw new Error('Formato não suportado para geração de podcast. Use PDF, DOCX ou TXT.');
+      }
+
+      if (!text.trim()) throw new Error('Texto vazio');
+
+      if (shouldSummarize && text.length > 2000) {
+        text = await summarizeText(text);
+      }
+
+      const chunks = splitTextIntoChunks(text, 5000);
+      console.log(`Texto dividido em ${chunks.length} partes`);
+
+      const audioDir = path.join(__dirname, '..', 'audio');
+      const audioFileName = `podcast-${Date.now()}.mp3`;
+      const audioPath = path.join(audioDir, audioFileName);
+
+      const voiceConfig = {
+        languageCode: 'pt-BR',
+        name: 'pt-BR-Wavenet-A',
+        ssmlGender: 'FEMALE'
+      };
+      const audioConfig = {
+        audioEncoding: 'MP3',
+        speakingRate: 1.0,
+        pitch: 0.0
+      };
+
+      const audioBuffers = [];
+      for (let i = 0; i < chunks.length; i++) {
+        console.log(`Sintetizando parte ${i+1}...`);
+        const request = {
+          input: { text: chunks[i] },
+          voice: voiceConfig,
+          audioConfig,
+        };
+        const [response] = await googleTTSClient.synthesizeSpeech(request);
+        audioBuffers.push(response.audioContent);
+      }
+
+      const finalBuffer = Buffer.concat(audioBuffers);
+      fs.writeFileSync(audioPath, finalBuffer);
+
+      const titulo = req.body.titulo || `Podcast ${new Date().toLocaleString()}`;
+      const duracaoEstimada = Math.ceil(text.split(' ').length / 150) * 60;
+
+      const result = await pool.query(
+        `INSERT INTO podcasts_gerados (caderno_id, titulo, descricao, roteiro, duracao_estimada, url_audio)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [caderno_id, titulo, `Gerado a partir de arquivo`, text, duracaoEstimada, `/audio/${audioFileName}`]
+      );
+
+      fs.unlinkSync(filePath);
+
+      res.json({
+        success: true,
+        podcast: result.rows[0],
+        audioUrl: `/audio/${audioFileName}`,
+        textLength: text.length,
+        chunks: chunks.length
+      });
+
+    } catch (error) {
+      console.error('Erro ao gerar podcast:', error);
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      res.status(500).json({ error: 'Erro ao gerar podcast', details: error.message });
+    }
+  });
+
+  router.get('/podcasts-gerados', async (req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT pg.*, c.titulo as caderno_titulo,
+        (SELECT COUNT(*) FROM episodios_podcast WHERE podcast_gerado_id = pg.id) as total_episodios
+        FROM podcasts_gerados pg
+        LEFT JOIN cadernos c ON pg.caderno_id = c.id
+        ORDER BY pg.created_at DESC
+      `);
+      res.json(result.rows);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.get('/podcasts-gerados/:id', async (req, res) => {
+    try {
+      const podcast = await pool.query('SELECT * FROM podcasts_gerados WHERE id = $1', [req.params.id]);
+      if (podcast.rows.length === 0) return res.status(404).json({ error: 'Podcast não encontrado' });
+
+      const episodios = await pool.query(
+        'SELECT * FROM episodios_podcast WHERE podcast_gerado_id = $1 ORDER BY numero',
+        [req.params.id]
+      );
+
+      res.json({
+        ...podcast.rows[0],
+        episodios: episodios.rows
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.delete('/podcasts-gerados/:id', async (req, res) => {
+    try {
+      const pod = await pool.query('SELECT url_audio FROM podcasts_gerados WHERE id = $1', [req.params.id]);
+      if (pod.rows[0]?.url_audio) {
+        const filePath = path.join(__dirname, '..', pod.rows[0].url_audio);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+      await pool.query('DELETE FROM podcasts_gerados WHERE id = $1', [req.params.id]);
+      res.status(204).send();
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ========== BOOKS CRUD ==========
+  router.get('/books', async (req, res) => {
+    try {
+      const { status } = req.query;
+      let query = 'SELECT * FROM books';
+      const params = [];
+      if (status) {
+        query += ' WHERE status = $1';
+        params.push(status);
+      }
+      query += ' ORDER BY updated_at DESC';
+      const result = await pool.query(query, params);
+      res.json(result.rows);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.get('/books/:id', async (req, res) => {
+    try {
+      const result = await pool.query('SELECT * FROM books WHERE id = $1', [req.params.id]);
+      if (result.rows.length === 0) return res.status(404).json({ error: 'Livro não encontrado' });
+      res.json(result.rows[0]);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.post('/books', async (req, res) => {
+    const { title, author, total_pages, status = 'quero ler' } = req.body;
+    if (!title || !total_pages) {
+      return res.status(400).json({ error: 'Título e total de páginas são obrigatórios' });
+    }
+    const id = uuidv4();
+    try {
+      const result = await pool.query(
+        `INSERT INTO books (id, title, author, total_pages, pages_read, status)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [id, title, author, total_pages, 0, status]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.put('/books/:id', async (req, res) => {
+    const { title, author, total_pages, pages_read, status } = req.body;
+    try {
+      const current = await pool.query('SELECT * FROM books WHERE id = $1', [req.params.id]);
+      if (current.rows.length === 0) return res.status(404).json({ error: 'Livro não encontrado' });
+
+      const currentBook = current.rows[0];
+      const updatedPagesRead = pages_read !== undefined ? pages_read : currentBook.pages_read;
+      const updatedTotal = total_pages || currentBook.total_pages;
+      if (updatedPagesRead > updatedTotal) {
+        return res.status(400).json({ error: 'Páginas lidas não podem exceder o total' });
+      }
+
+      await pool.query('BEGIN');
+
+      const updateResult = await pool.query(
+        `UPDATE books SET
+            title = COALESCE($1, title),
+            author = COALESCE($2, author),
+            total_pages = COALESCE($3, total_pages),
+            pages_read = COALESCE($4, pages_read),
+            status = COALESCE($5, status)
+         WHERE id = $6 RETURNING *`,
+        [title, author, total_pages, pages_read, status, req.params.id]
+      );
+
+      if (pages_read !== undefined && pages_read !== currentBook.pages_read) {
+        await pool.query(
+          'INSERT INTO reading_history (book_id, pages_read) VALUES ($1, $2)',
+          [req.params.id, pages_read]
+        );
+      }
+
+      await pool.query('COMMIT');
+      res.json(updateResult.rows[0]);
+    } catch (err) {
+      await pool.query('ROLLBACK');
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.delete('/books/:id', async (req, res) => {
+    try {
+      const result = await pool.query('DELETE FROM books WHERE id = $1', [req.params.id]);
+      if (result.rowCount === 0) return res.status(404).json({ error: 'Livro não encontrado' });
+      res.status(204).send();
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ========== ESTATÍSTICAS DE LEITURA ==========
+  router.get('/stats', async (req, res) => {
+    try {
+      // Garantir que a tabela reading_history existe
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS reading_history (
+          id SERIAL PRIMARY KEY,
+          book_id UUID REFERENCES books(id) ON DELETE CASCADE,
+          pages_read INTEGER NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Progresso diário dos últimos 7 dias
+      const weeklyProgress = await pool.query(`
+        SELECT
+            DATE(created_at) as date,
+            SUM(pages_read) as total_pages
+        FROM reading_history
+        WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+        GROUP BY DATE(created_at)
+        ORDER BY date
+      `);
+
+      // Livros concluídos no mês atual
+      const currentMonth = await pool.query(`
+        SELECT COUNT(*) as count
+        FROM books
+        WHERE status = 'lido'
+          AND EXTRACT(MONTH FROM updated_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+          AND EXTRACT(YEAR FROM updated_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+      `);
+
+      // Livros concluídos no mês anterior
+      const previousMonth = await pool.query(`
+        SELECT COUNT(*) as count
+        FROM books
+        WHERE status = 'lido'
+          AND EXTRACT(MONTH FROM updated_at) = EXTRACT(MONTH FROM CURRENT_DATE - INTERVAL '1 month')
+          AND EXTRACT(YEAR FROM updated_at) = EXTRACT(YEAR FROM CURRENT_DATE - INTERVAL '1 month')
+      `);
+
+      res.json({
+        weekly: weeklyProgress.rows,
+        currentMonthCompleted: parseInt(currentMonth.rows[0].count),
+        previousMonthCompleted: parseInt(previousMonth.rows[0].count)
+      });
+
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ========== GOOGLE DRIVE INTEGRATION ==========
+  router.get('/auth/google', (req, res) => {
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: SCOPES,
+      prompt: 'consent',
+      state: req.query.state
+    });
+    res.redirect(authUrl);
+  });
+
+  router.get('/auth/google/callback', async (req, res) => {
+    const { code, state } = req.query;
+    try {
+      const { tokens } = await oauth2Client.getToken(code);
+      oauth2Client.setCredentials(tokens);
+
+      const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+      const userInfo = await oauth2.userinfo.get();
+      const { id: googleId, email, name } = userInfo.data;
+
+      const userResult = await pool.query(
+        `INSERT INTO usuarios_google (google_id, email, nome, access_token, refresh_token, token_expiry)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (google_id) DO UPDATE SET
+           access_token = EXCLUDED.access_token,
+           refresh_token = COALESCE(EXCLUDED.refresh_token, usuarios_google.refresh_token),
+           token_expiry = EXCLUDED.token_expiry
+         RETURNING id`,
+        [googleId, email, name, tokens.access_token, tokens.refresh_token, new Date(tokens.expiry_date)]
+      );
+      const userId = userResult.rows[0].id;
+
+      const jwtToken = jwt.sign({ userId, googleId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+      res.redirect(`${process.env.FRONTEND_URL}/notebooks/${state}?token=${jwtToken}`);
+    } catch (error) {
+      console.error('Erro no callback OAuth:', error);
+      res.redirect(`${process.env.FRONTEND_URL}/?error=auth_failed`);
+    }
+  });
+
+  async function ensureGoogleAuth(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'Token não fornecido' });
+    const token = authHeader.split(' ')[1];
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await pool.query('SELECT * FROM usuarios_google WHERE id = $1', [decoded.userId]);
+      if (user.rows.length === 0) return res.status(401).json({ error: 'Usuário não encontrado' });
+
+      const userData = user.rows[0];
+      const oauth = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET
+      );
+      oauth.setCredentials({
+        access_token: userData.access_token,
+        refresh_token: userData.refresh_token
+      });
+      if (new Date(userData.token_expiry) < new Date()) {
+        const { credentials } = await oauth.refreshAccessToken();
+        oauth.setCredentials(credentials);
+        await pool.query(
+          'UPDATE usuarios_google SET access_token = $1, token_expiry = $2 WHERE id = $3',
+          [credentials.access_token, new Date(credentials.expiry_date), userData.id]
+        );
+      }
+      req.googleAuth = oauth;
+      req.userId = userData.id;
+      next();
+    } catch (err) {
+      res.status(401).json({ error: 'Token inválido' });
+    }
+  }
+
+  router.post('/drive/export-page', ensureGoogleAuth, async (req, res) => {
+    const { pagina_id } = req.body;
+    try {
+      const pagina = await pool.query(
+        'SELECT p.*, c.titulo as caderno_titulo FROM paginas p JOIN cadernos c ON p.caderno_id = c.id WHERE p.id = $1',
+        [pagina_id]
+      );
+      if (pagina.rows.length === 0) return res.status(404).json({ error: 'Página não encontrada' });
+
+      const { titulo, conteudo, caderno_titulo, caderno_id } = pagina.rows[0];
+
+      // Garantir que a pasta do caderno exista
+      let folderId;
+      const folderRef = await pool.query('SELECT folder_id FROM drive_references WHERE caderno_id = $1 AND pagina_id IS NULL', [caderno_id]);
+      if (folderRef.rows.length === 0) {
+        const drive = google.drive({ version: 'v3', auth: req.googleAuth });
+        const folderMetadata = {
+          name: caderno_titulo,
+          mimeType: 'application/vnd.google-apps.folder'
+        };
+        const folder = await drive.files.create({
+          resource: folderMetadata,
+          fields: 'id'
+        });
+        folderId = folder.data.id;
+        await pool.query(
+          'INSERT INTO drive_references (caderno_id, folder_id) VALUES ($1, $2)',
+          [caderno_id, folderId]
+        );
+      } else {
+        folderId = folderRef.rows[0].folder_id;
+      }
+
+      const drive = google.drive({ version: 'v3', auth: req.googleAuth });
+
+      // Criar subpasta com o nome da página
+      const subFolderMetadata = {
+        name: titulo,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [folderId]
+      };
+      const subFolder = await drive.files.create({
+        resource: subFolderMetadata,
+        fields: 'id, webViewLink'
+      });
+      const subFolderId = subFolder.data.id;
+      const subFolderLink = subFolder.data.webViewLink;
+
+      // Criar arquivo .txt com o conteúdo
+      const fileMetadata = {
+        name: `${titulo}.txt`,
+        parents: [subFolderId]
+      };
+      const media = {
+        mimeType: 'text/plain',
+        body: conteudo
+      };
+      const file = await drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: 'id, webViewLink'
+      });
+
+      await pool.query(
+        'INSERT INTO drive_references (caderno_id, pagina_id, folder_id, file_id, link) VALUES ($1, $2, $3, $4, $5)',
+        [caderno_id, pagina_id, subFolderId, file.data.id, file.data.webViewLink]
+      );
+
+      res.json({
+        folderId: subFolderId,
+        fileId: file.data.id,
+        link: file.data.webViewLink
+      });
+    } catch (error) {
+      console.error('Erro ao exportar página:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  router.get('/drive/page-status/:pagina_id', async (req, res) => {
+    const { pagina_id } = req.params;
+    try {
+      const ref = await pool.query('SELECT * FROM drive_references WHERE pagina_id = $1', [pagina_id]);
+      if (ref.rows.length > 0) {
+        res.json({ exported: true, link: ref.rows[0].link });
+      } else {
+        res.json({ exported: false });
+      }
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  router.get('/audio-list', (req, res) => {
+    const audioDir = path.join(__dirname, '..', 'audio');
+    if (!fs.existsSync(audioDir)) return res.json([]);
+    const files = fs.readdirSync(audioDir)
+      .filter(f => f.endsWith('.mp3'))
+      .map(f => ({
+        name: f,
+        url: `/audio/${f}`,
+        createdAt: fs.statSync(path.join(audioDir, f)).birthtime
+      }))
+      .sort((a, b) => b.createdAt - a.createdAt);
+    res.json(files);
+  });
+
+  return router;
+};
