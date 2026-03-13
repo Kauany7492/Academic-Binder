@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import { FaHome, FaCalendarAlt, FaBook, FaPodcast, FaFilePdf, FaMoon, FaSun } from 'react-icons/fa';
+import { FaHome, FaCalendarAlt, FaBook, FaPodcast, FaFilePdf, FaMoon, FaSun, FaBookOpen } from 'react-icons/fa';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -12,6 +12,7 @@ const Navbar = () => {
     { path: '/', icon: <FaHome />, label: 'Home' },
     { path: '/planner', icon: <FaCalendarAlt />, label: 'Planner' },
     { path: '/notebooks', icon: <FaBook />, label: 'Notebooks' },
+    { path: '/books', icon: <FaBookOpen />, label: 'Livros' },
     { path: '/podcasts', icon: <FaPodcast />, label: 'Podcasts' },
     { path: '/pdfs', icon: <FaFilePdf />, label: 'PDFs' },
   ];
