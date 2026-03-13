@@ -1,35 +1,97 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import './Home.css';
 
 const Home = () => {
   const [recentNotebooks, setRecentNotebooks] = useState([]);
   const [recentPDFs, setRecentPDFs] = useState([]);
   const [recentPodcasts, setRecentPodcasts] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const notebooksRes = await api.get('/cadernos?limit=3');
-        setRecentNotebooks(notebooksRes.data);
-        
-        const pdfsRes = await api.get('/pdfs?limit=3');
-        setRecentPDFs(pdfsRes.data);
-        
-        const podcastsRes = await api.get('/podcasts-gerados?limit=3');
-        setRecentPodcasts(podcastsRes.data);
-      } catch (error) {
-        console.error('Erro ao buscar dados:', error);
-      }
-    };
-    
-    fetchData();
+    fetchRecentItems();
+    fetchStats();
   }, []);
 
+  const fetchRecentItems = async () => {
+    try {
+      const [notebooksRes, pdfsRes, podcastsRes] = await Promise.all([
+        api.get('/cadernos?limit=3'),
+        api.get('/pdfs?limit=3'),
+        api.get('/podcasts-gerados?limit=3')
+      ]);
+      setRecentNotebooks(notebooksRes.data);
+      setRecentPDFs(pdfsRes.data);
+      setRecentPodcasts(podcastsRes.data);
+    } catch (error) {
+      console.error('Erro ao buscar dados recentes:', error);
+    }
+  };
+
+  const fetchStats = async () => {
+    setStatsLoading(true);
+    try {
+      const res = await api.get('/stats');
+      setStats(res.data);
+      setStatsError(null);
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error);
+      setStatsError('Não foi possível carregar as estatísticas de leitura.');
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const chartData = stats?.weekly?.map(item => ({
+    date: format(parseISO(item.date), 'dd/MM'),
+    pages: parseInt(item.total_pages) || 0
+  })) || [];
+
   return (
-    <div className="page-container">
+    <div className="home-container">
       <h1 className="page-title">Academic Binder</h1>
-      
+
+      <section className="reading-stats">
+        <h2>📊 Estatísticas de Leitura</h2>
+        {statsLoading && <p>Carregando estatísticas...</p>}
+        {statsError && <p className="error">{statsError}</p>}
+        {stats && !statsLoading && (
+          <div className="stats-grid">
+            <div className="stats-card">
+              <h3>Progresso Diário (Últimos 7 dias)</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="pages" stroke="#5D86AA" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="stats-card comparison">
+              <h3>Livros Concluídos</h3>
+              <div className="comparison-numbers">
+                <div>
+                  <span className="label">Mês Atual</span>
+                  <span className="value">{stats.currentMonthCompleted}</span>
+                </div>
+                <div>
+                  <span className="label">Mês Anterior</span>
+                  <span className="value">{stats.previousMonthCompleted}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
       <section className="quick-access">
         <h2>Acesso Rápido</h2>
         
