@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { FaMicrophone, FaUpload, FaLink, FaTrash } from 'react-icons/fa';
+import { FaMicrophone, FaUpload, FaLink, FaTrash, FaGoogleDrive } from 'react-icons/fa';
 import AudioRecorder from '../components/AudioRecorder';
 import DownloadButton from '../components/DownloadButton';
 
@@ -22,6 +22,19 @@ const NotebookDetail = () => {
   const [uploadingNotes, setUploadingNotes] = useState(false);
   const [pdfs, setPdfs] = useState([]);
   const [podcasts, setPodcasts] = useState([]);
+  const [driveToken, setDriveToken] = useState(localStorage.getItem('driveToken'));
+  const [exporting, setExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState({});
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      localStorage.setItem('driveToken', token);
+      setDriveToken(token);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     fetchNotebook();
@@ -149,6 +162,29 @@ const NotebookDetail = () => {
     setShowRecorder(false);
   };
 
+  const handleGoogleLogin = (paginaId) => {
+    window.location.href = `${process.env.REACT_APP_API_URL}/auth/google?state=${paginaId}`;
+  };
+
+  const exportToDrive = async (paginaId) => {
+    if (!driveToken) {
+      handleGoogleLogin(paginaId);
+      return;
+    }
+    setExporting(true);
+    try {
+      const res = await api.post('/drive/export-page', { pagina_id: paginaId }, {
+        headers: { Authorization: `Bearer ${driveToken}` }
+      });
+      setExportStatus({ ...exportStatus, [paginaId]: { success: true, link: res.data.link } });
+    } catch (error) {
+      console.error('Erro ao exportar:', error);
+      setExportStatus({ ...exportStatus, [paginaId]: { success: false, error: error.response?.data?.error || 'Erro' } });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="page-container">
       {notebook && (
@@ -214,8 +250,26 @@ const NotebookDetail = () => {
               <div key={pagina.id} className="pagina-card" onMouseUp={() => setCurrentPagina(pagina)}>
                 <div className="pagina-header">
                   <h3>{pagina.titulo}</h3>
-                  <button onClick={() => handleDeletePagina(pagina.id)} className="delete"><FaTrash /></button>
+                  <div className="pagina-actions">
+                    <button 
+                      onClick={() => exportToDrive(pagina.id)} 
+                      disabled={exporting}
+                      className="btn-export"
+                      title="Exportar para Google Drive"
+                    >
+                      <FaGoogleDrive /> {exporting ? '...' : 'Drive'}
+                    </button>
+                    <button onClick={() => handleDeletePagina(pagina.id)} className="delete"><FaTrash /></button>
+                  </div>
                 </div>
+                
+                {exportStatus[pagina.id]?.success && (
+                  <div className="drive-link">
+                    <a href={exportStatus[pagina.id].link} target="_blank" rel="noopener noreferrer">
+                      ✅ Ver no Google Drive
+                    </a>
+                  </div>
+                )}
                 
                 <div className="pagina-content">
                   <p>{pagina.conteudo}</p>
