@@ -11,11 +11,20 @@ const vision = require('@google-cloud/vision');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const sharp = require('sharp');
+const { google } = require('googleapis');
+const jwt = require('jsonwebtoken');
+const { v4: uuidv4 } = require('uuid');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 const googleTTSClient = new textToSpeech.TextToSpeechClient();
 const visionClient = new vision.ImageAnnotatorClient();
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
+const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
 module.exports = (pool) => {
   const configuration = new Configuration({
@@ -23,6 +32,7 @@ module.exports = (pool) => {
   });
   const openai = new OpenAIApi(configuration);
 
+  // Configuração do multer para upload de arquivos
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
       const uploadDir = './uploads/temp';
@@ -33,7 +43,9 @@ module.exports = (pool) => {
       cb(null, Date.now() + '-' + file.originalname);
     }
   });
-  const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
+  const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
+
+  // ========== UTILITÁRIOS ==========
 
   async function preprocessImage(inputPath, outputPath) {
     await sharp(inputPath)
@@ -545,142 +557,4 @@ module.exports = (pool) => {
 
       const filePath = req.file.path;
       const mimeType = req.file.mimetype;
-      const shouldSummarize = req.body.summarize === 'true';
-      const caderno_id = req.body.caderno_id || null;
-      let text = '';
-
-      if (mimeType === 'application/pdf' || mimeType === 'text/plain' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        text = await extractTextFromFile(filePath, mimeType);
-      } else {
-        throw new Error('Formato não suportado para geração de podcast. Use PDF, DOCX ou TXT.');
-      }
-
-      if (!text.trim()) throw new Error('Texto vazio');
-
-      if (shouldSummarize && text.length > 2000) {
-        text = await summarizeText(text);
-      }
-
-      const chunks = splitTextIntoChunks(text, 5000);
-      console.log(`Texto dividido em ${chunks.length} partes`);
-
-      const audioDir = path.join(__dirname, '..', 'audio');
-      const audioFileName = `podcast-${Date.now()}.mp3`;
-      const audioPath = path.join(audioDir, audioFileName);
-
-      const voiceConfig = {
-        languageCode: 'pt-BR',
-        name: 'pt-BR-Wavenet-A',
-        ssmlGender: 'FEMALE'
-      };
-      const audioConfig = {
-        audioEncoding: 'MP3',
-        speakingRate: 1.0,
-        pitch: 0.0
-      };
-
-      const audioBuffers = [];
-      for (let i = 0; i < chunks.length; i++) {
-        console.log(`Sintetizando parte ${i+1}...`);
-        const request = {
-          input: { text: chunks[i] },
-          voice: voiceConfig,
-          audioConfig,
-        };
-        const [response] = await googleTTSClient.synthesizeSpeech(request);
-        audioBuffers.push(response.audioContent);
-      }
-
-      const finalBuffer = Buffer.concat(audioBuffers);
-      fs.writeFileSync(audioPath, finalBuffer);
-
-      const titulo = req.body.titulo || `Podcast ${new Date().toLocaleString()}`;
-      const duracaoEstimada = Math.ceil(text.split(' ').length / 150) * 60;
-
-      const result = await pool.query(
-        `INSERT INTO podcasts_gerados (caderno_id, titulo, descricao, roteiro, duracao_estimada, url_audio)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [caderno_id, titulo, `Gerado a partir de arquivo`, text, duracaoEstimada, `/audio/${audioFileName}`]
-      );
-
-      fs.unlinkSync(filePath);
-
-      res.json({
-        success: true,
-        podcast: result.rows[0],
-        audioUrl: `/audio/${audioFileName}`,
-        textLength: text.length,
-        chunks: chunks.length
-      });
-
-    } catch (error) {
-      console.error('Erro ao gerar podcast:', error);
-      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-      res.status(500).json({ error: 'Erro ao gerar podcast', details: error.message });
-    }
-  });
-
-  router.get('/podcasts-gerados', async (req, res) => {
-    try {
-      const result = await pool.query(`
-        SELECT pg.*, c.titulo as caderno_titulo,
-        (SELECT COUNT(*) FROM episodios_podcast WHERE podcast_gerado_id = pg.id) as total_episodios
-        FROM podcasts_gerados pg
-        LEFT JOIN cadernos c ON pg.caderno_id = c.id
-        ORDER BY pg.created_at DESC
-      `);
-      res.json(result.rows);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  router.get('/podcasts-gerados/:id', async (req, res) => {
-    try {
-      const podcast = await pool.query('SELECT * FROM podcasts_gerados WHERE id = $1', [req.params.id]);
-      if (podcast.rows.length === 0) return res.status(404).json({ error: 'Podcast não encontrado' });
-
-      const episodios = await pool.query(
-        'SELECT * FROM episodios_podcast WHERE podcast_gerado_id = $1 ORDER BY numero',
-        [req.params.id]
-      );
-
-      res.json({
-        ...podcast.rows[0],
-        episodios: episodios.rows
-      });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  router.delete('/podcasts-gerados/:id', async (req, res) => {
-    try {
-      const pod = await pool.query('SELECT url_audio FROM podcasts_gerados WHERE id = $1', [req.params.id]);
-      if (pod.rows[0]?.url_audio) {
-        const filePath = path.join(__dirname, '..', pod.rows[0].url_audio);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      }
-      await pool.query('DELETE FROM podcasts_gerados WHERE id = $1', [req.params.id]);
-      res.status(204).send();
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  router.get('/audio-list', (req, res) => {
-    const audioDir = path.join(__dirname, '..', 'audio');
-    if (!fs.existsSync(audioDir)) return res.json([]);
-    const files = fs.readdirSync(audioDir)
-      .filter(f => f.endsWith('.mp3'))
-      .map(f => ({
-        name: f,
-        url: `/audio/${f}`,
-        createdAt: fs.statSync(path.join(audioDir, f)).birthtime
-      }))
-      .sort((a, b) => b.createdAt - a.createdAt);
-    res.json(files);
-  });
-
-  return router;
-};
+      const shouldSummarize = req.body.summar
