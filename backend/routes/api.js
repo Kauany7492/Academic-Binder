@@ -9,7 +9,6 @@ const { OpenAI } = require('openai');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const sharp = require('sharp');
-const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 
 // Serviços customizados
@@ -109,9 +108,9 @@ module.exports = (pool) => {
     try {
       const { limit } = req.query;
       let query = 'SELECT * FROM cadernos ORDER BY created_at DESC';
-      if (limit) query += ' LIMIT $1';
-      const result = await pool.query(query, limit ? [limit] : []);
-      res.json(result.rows);
+      if (limit) query += ' LIMIT ?';
+      const [rows] = await pool.query(query, limit ? [parseInt(limit)] : []);
+      res.json(rows);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -119,9 +118,9 @@ module.exports = (pool) => {
 
   router.get('/cadernos/:id', async (req, res) => {
     try {
-      const result = await pool.query('SELECT * FROM cadernos WHERE id = $1', [req.params.id]);
-      if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-      res.json(result.rows[0]);
+      const [rows] = await pool.query('SELECT * FROM cadernos WHERE id = ?', [req.params.id]);
+      if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
+      res.json(rows[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -130,11 +129,12 @@ module.exports = (pool) => {
   router.post('/cadernos', async (req, res) => {
     const { titulo, descricao, cor } = req.body;
     try {
-      const result = await pool.query(
-        'INSERT INTO cadernos (titulo, descricao, cor) VALUES ($1, $2, $3) RETURNING *',
+      const [result] = await pool.query(
+        'INSERT INTO cadernos (titulo, descricao, cor) VALUES (?, ?, ?)',
         [titulo, descricao, cor || '#3498db']
       );
-      res.status(201).json(result.rows[0]);
+      const [newRecord] = await pool.query('SELECT * FROM cadernos WHERE id = ?', [result.insertId]);
+      res.status(201).json(newRecord[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -143,11 +143,12 @@ module.exports = (pool) => {
   router.put('/cadernos/:id', async (req, res) => {
     const { titulo, descricao, cor, link_universidade } = req.body;
     try {
-      const result = await pool.query(
-        'UPDATE cadernos SET titulo = $1, descricao = $2, cor = $3, link_universidade = $4 WHERE id = $5 RETURNING *',
+      await pool.query(
+        'UPDATE cadernos SET titulo = ?, descricao = ?, cor = ?, link_universidade = ? WHERE id = ?',
         [titulo, descricao, cor, link_universidade, req.params.id]
       );
-      res.json(result.rows[0]);
+      const [updated] = await pool.query('SELECT * FROM cadernos WHERE id = ?', [req.params.id]);
+      res.json(updated[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -155,7 +156,8 @@ module.exports = (pool) => {
 
   router.delete('/cadernos/:id', async (req, res) => {
     try {
-      await pool.query('DELETE FROM cadernos WHERE id = $1', [req.params.id]);
+      const [result] = await pool.query('DELETE FROM cadernos WHERE id = ?', [req.params.id]);
+      if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -165,11 +167,11 @@ module.exports = (pool) => {
   // ========== CRUD PÁGINAS ==========
   router.get('/cadernos/:cadernoId/paginas', async (req, res) => {
     try {
-      const result = await pool.query(
-        'SELECT * FROM paginas WHERE caderno_id = $1 ORDER BY created_at DESC',
+      const [rows] = await pool.query(
+        'SELECT * FROM paginas WHERE caderno_id = ? ORDER BY created_at DESC',
         [req.params.cadernoId]
       );
-      res.json(result.rows);
+      res.json(rows);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -178,11 +180,12 @@ module.exports = (pool) => {
   router.post('/paginas', async (req, res) => {
     const { caderno_id, titulo, conteudo, metodo_anotacao } = req.body;
     try {
-      const result = await pool.query(
-        'INSERT INTO paginas (caderno_id, titulo, conteudo, metodo_anotacao) VALUES ($1, $2, $3, $4) RETURNING *',
+      const [result] = await pool.query(
+        'INSERT INTO paginas (caderno_id, titulo, conteudo, metodo_anotacao) VALUES (?, ?, ?, ?)',
         [caderno_id, titulo, conteudo, metodo_anotacao]
       );
-      res.status(201).json(result.rows[0]);
+      const [newRecord] = await pool.query('SELECT * FROM paginas WHERE id = ?', [result.insertId]);
+      res.status(201).json(newRecord[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -191,11 +194,12 @@ module.exports = (pool) => {
   router.put('/paginas/:id', async (req, res) => {
     const { titulo, conteudo, metodo_anotacao } = req.body;
     try {
-      const result = await pool.query(
-        'UPDATE paginas SET titulo = $1, conteudo = $2, metodo_anotacao = $3 WHERE id = $4 RETURNING *',
+      await pool.query(
+        'UPDATE paginas SET titulo = ?, conteudo = ?, metodo_anotacao = ? WHERE id = ?',
         [titulo, conteudo, metodo_anotacao, req.params.id]
       );
-      res.json(result.rows[0]);
+      const [updated] = await pool.query('SELECT * FROM paginas WHERE id = ?', [req.params.id]);
+      res.json(updated[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -203,7 +207,8 @@ module.exports = (pool) => {
 
   router.delete('/paginas/:id', async (req, res) => {
     try {
-      await pool.query('DELETE FROM paginas WHERE id = $1', [req.params.id]);
+      const [result] = await pool.query('DELETE FROM paginas WHERE id = ?', [req.params.id]);
+      if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -213,8 +218,8 @@ module.exports = (pool) => {
   // ========== DESTAQUES ==========
   router.get('/paginas/:paginaId/destaques', async (req, res) => {
     try {
-      const result = await pool.query('SELECT * FROM destaques WHERE pagina_id = $1 ORDER BY id', [req.params.paginaId]);
-      res.json(result.rows);
+      const [rows] = await pool.query('SELECT * FROM destaques WHERE pagina_id = ? ORDER BY id', [req.params.paginaId]);
+      res.json(rows);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -223,12 +228,13 @@ module.exports = (pool) => {
   router.post('/destaques', async (req, res) => {
     const { pagina_id, trecho, cor, comentario, posicao_inicio, posicao_fim } = req.body;
     try {
-      const result = await pool.query(
+      const [result] = await pool.query(
         `INSERT INTO destaques (pagina_id, trecho, cor, comentario, posicao_inicio, posicao_fim)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [pagina_id, trecho, cor, comentario, posicao_inicio, posicao_fim]
       );
-      res.status(201).json(result.rows[0]);
+      const [newRecord] = await pool.query('SELECT * FROM destaques WHERE id = ?', [result.insertId]);
+      res.status(201).json(newRecord[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -236,7 +242,8 @@ module.exports = (pool) => {
 
   router.delete('/destaques/:id', async (req, res) => {
     try {
-      await pool.query('DELETE FROM destaques WHERE id = $1', [req.params.id]);
+      const [result] = await pool.query('DELETE FROM destaques WHERE id = ?', [req.params.id]);
+      if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -250,12 +257,12 @@ module.exports = (pool) => {
       let query = 'SELECT * FROM lembretes';
       const params = [];
       if (caderno_id) {
-        query += ' WHERE caderno_id = $1';
+        query += ' WHERE caderno_id = ?';
         params.push(caderno_id);
       }
       query += ' ORDER BY data_hora';
-      const result = await pool.query(query, params);
-      res.json(result.rows);
+      const [rows] = await pool.query(query, params);
+      res.json(rows);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -264,12 +271,12 @@ module.exports = (pool) => {
   router.post('/lembretes', async (req, res) => {
     const { caderno_id, titulo, descricao, data_hora } = req.body;
     try {
-      const result = await pool.query(
-        `INSERT INTO lembretes (caderno_id, titulo, descricao, data_hora)
-         VALUES ($1, $2, $3, $4) RETURNING *`,
+      const [result] = await pool.query(
+        'INSERT INTO lembretes (caderno_id, titulo, descricao, data_hora) VALUES (?, ?, ?, ?)',
         [caderno_id, titulo, descricao, data_hora]
       );
-      res.status(201).json(result.rows[0]);
+      const [newRecord] = await pool.query('SELECT * FROM lembretes WHERE id = ?', [result.insertId]);
+      res.status(201).json(newRecord[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -278,12 +285,12 @@ module.exports = (pool) => {
   router.put('/lembretes/:id', async (req, res) => {
     const { titulo, descricao, data_hora, notificado } = req.body;
     try {
-      const result = await pool.query(
-        `UPDATE lembretes SET titulo = $1, descricao = $2, data_hora = $3, notificado = $4
-         WHERE id = $5 RETURNING *`,
+      await pool.query(
+        'UPDATE lembretes SET titulo = ?, descricao = ?, data_hora = ?, notificado = ? WHERE id = ?',
         [titulo, descricao, data_hora, notificado, req.params.id]
       );
-      res.json(result.rows[0]);
+      const [updated] = await pool.query('SELECT * FROM lembretes WHERE id = ?', [req.params.id]);
+      res.json(updated[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -291,7 +298,8 @@ module.exports = (pool) => {
 
   router.delete('/lembretes/:id', async (req, res) => {
     try {
-      await pool.query('DELETE FROM lembretes WHERE id = $1', [req.params.id]);
+      const [result] = await pool.query('DELETE FROM lembretes WHERE id = ?', [req.params.id]);
+      if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -309,13 +317,14 @@ module.exports = (pool) => {
     try {
       let query = 'SELECT * FROM podcasts';
       const { caderno_id } = req.query;
+      const params = [];
       if (caderno_id) {
-        query += ' WHERE caderno_id = $1';
-        const result = await pool.query(query, [caderno_id]);
-        return res.json(result.rows);
+        query += ' WHERE caderno_id = ?';
+        params.push(caderno_id);
       }
-      const result = await pool.query(query + ' ORDER BY created_at DESC');
-      res.json(result.rows);
+      query += ' ORDER BY created_at DESC';
+      const [rows] = await pool.query(query, params);
+      res.json(rows);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -326,11 +335,12 @@ module.exports = (pool) => {
     const file = req.file;
     const url = file ? `/uploads/podcasts/${file.filename}` : null;
     try {
-      const result = await pool.query(
-        'INSERT INTO podcasts (caderno_id, titulo, url) VALUES ($1, $2, $3) RETURNING *',
+      const [result] = await pool.query(
+        'INSERT INTO podcasts (caderno_id, titulo, url) VALUES (?, ?, ?)',
         [caderno_id, titulo, url]
       );
-      res.status(201).json(result.rows[0]);
+      const [newRecord] = await pool.query('SELECT * FROM podcasts WHERE id = ?', [result.insertId]);
+      res.status(201).json(newRecord[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -338,12 +348,13 @@ module.exports = (pool) => {
 
   router.delete('/podcasts/:id', async (req, res) => {
     try {
-      const podcast = await pool.query('SELECT url FROM podcasts WHERE id = $1', [req.params.id]);
-      if (podcast.rows[0]?.url) {
-        const filePath = path.join(__dirname, '..', podcast.rows[0].url);
+      const [podcast] = await pool.query('SELECT url FROM podcasts WHERE id = ?', [req.params.id]);
+      if (podcast[0]?.url) {
+        const filePath = path.join(__dirname, '..', podcast[0].url);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       }
-      await pool.query('DELETE FROM podcasts WHERE id = $1', [req.params.id]);
+      const [result] = await pool.query('DELETE FROM podcasts WHERE id = ?', [req.params.id]);
+      if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -361,13 +372,14 @@ module.exports = (pool) => {
     try {
       let query = 'SELECT * FROM pdfs';
       const { caderno_id } = req.query;
+      const params = [];
       if (caderno_id) {
-        query += ' WHERE caderno_id = $1';
-        const result = await pool.query(query, [caderno_id]);
-        return res.json(result.rows);
+        query += ' WHERE caderno_id = ?';
+        params.push(caderno_id);
       }
-      const result = await pool.query(query + ' ORDER BY created_at DESC');
-      res.json(result.rows);
+      query += ' ORDER BY created_at DESC';
+      const [rows] = await pool.query(query, params);
+      res.json(rows);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -378,11 +390,12 @@ module.exports = (pool) => {
     const file = req.file;
     const arquivo_path = file ? `/uploads/pdfs/${file.filename}` : null;
     try {
-      const result = await pool.query(
-        'INSERT INTO pdfs (caderno_id, titulo, arquivo_path) VALUES ($1, $2, $3) RETURNING *',
+      const [result] = await pool.query(
+        'INSERT INTO pdfs (caderno_id, titulo, arquivo_path) VALUES (?, ?, ?)',
         [caderno_id, titulo, arquivo_path]
       );
-      res.status(201).json(result.rows[0]);
+      const [newRecord] = await pool.query('SELECT * FROM pdfs WHERE id = ?', [result.insertId]);
+      res.status(201).json(newRecord[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -390,10 +403,10 @@ module.exports = (pool) => {
 
   router.post('/pdfs/:id/resumir', async (req, res) => {
     try {
-      const pdf = await pool.query('SELECT * FROM pdfs WHERE id = $1', [req.params.id]);
-      if (pdf.rows.length === 0) return res.status(404).json({ error: 'PDF não encontrado' });
+      const [pdf] = await pool.query('SELECT * FROM pdfs WHERE id = ?', [req.params.id]);
+      if (pdf.length === 0) return res.status(404).json({ error: 'PDF não encontrado' });
 
-      const filePath = path.join(__dirname, '..', pdf.rows[0].arquivo_path);
+      const filePath = path.join(__dirname, '..', pdf[0].arquivo_path);
       const dataBuffer = fs.readFileSync(filePath);
       const pdfData = await pdfParse(dataBuffer);
       const texto = pdfData.text.substring(0, 3000);
@@ -404,7 +417,7 @@ module.exports = (pool) => {
       });
       const resumo = completion.choices[0].message.content;
 
-      await pool.query('UPDATE pdfs SET resumo_ia = $1 WHERE id = $2', [resumo, req.params.id]);
+      await pool.query('UPDATE pdfs SET resumo_ia = ? WHERE id = ?', [resumo, req.params.id]);
       res.json({ resumo });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -413,12 +426,13 @@ module.exports = (pool) => {
 
   router.delete('/pdfs/:id', async (req, res) => {
     try {
-      const pdf = await pool.query('SELECT arquivo_path FROM pdfs WHERE id = $1', [req.params.id]);
-      if (pdf.rows[0]?.arquivo_path) {
-        const filePath = path.join(__dirname, '..', pdf.rows[0].arquivo_path);
+      const [pdf] = await pool.query('SELECT arquivo_path FROM pdfs WHERE id = ?', [req.params.id]);
+      if (pdf[0]?.arquivo_path) {
+        const filePath = path.join(__dirname, '..', pdf[0].arquivo_path);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       }
-      await pool.query('DELETE FROM pdfs WHERE id = $1', [req.params.id]);
+      const [result] = await pool.query('DELETE FROM pdfs WHERE id = ?', [req.params.id]);
+      if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -428,8 +442,8 @@ module.exports = (pool) => {
   // ========== LINKS ==========
   router.get('/paginas/:paginaId/links', async (req, res) => {
     try {
-      const result = await pool.query('SELECT * FROM links WHERE pagina_id = $1 ORDER BY id', [req.params.paginaId]);
-      res.json(result.rows);
+      const [rows] = await pool.query('SELECT * FROM links WHERE pagina_id = ? ORDER BY id', [req.params.paginaId]);
+      res.json(rows);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -438,11 +452,12 @@ module.exports = (pool) => {
   router.post('/links', async (req, res) => {
     const { pagina_id, url, descricao } = req.body;
     try {
-      const result = await pool.query(
-        'INSERT INTO links (pagina_id, url, descricao) VALUES ($1, $2, $3) RETURNING *',
+      const [result] = await pool.query(
+        'INSERT INTO links (pagina_id, url, descricao) VALUES (?, ?, ?)',
         [pagina_id, url, descricao]
       );
-      res.status(201).json(result.rows[0]);
+      const [newRecord] = await pool.query('SELECT * FROM links WHERE id = ?', [result.insertId]);
+      res.status(201).json(newRecord[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -450,7 +465,8 @@ module.exports = (pool) => {
 
   router.delete('/links/:id', async (req, res) => {
     try {
-      await pool.query('DELETE FROM links WHERE id = $1', [req.params.id]);
+      const [result] = await pool.query('DELETE FROM links WHERE id = ?', [req.params.id]);
+      if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -511,9 +527,8 @@ module.exports = (pool) => {
       const notasGeradas = completion.choices[0].message.content;
 
       const tituloPagina = tituloPersonalizado || `Notas de ${req.file.originalname}`;
-      const result = await pool.query(
-        `INSERT INTO paginas (caderno_id, titulo, conteudo, metodo_anotacao)
-         VALUES ($1, $2, $3, $4) RETURNING *`,
+      const [result] = await pool.query(
+        'INSERT INTO paginas (caderno_id, titulo, conteudo, metodo_anotacao) VALUES (?, ?, ?, ?)',
         [caderno_id, tituloPagina, notasGeradas, metodo]
       );
 
@@ -523,7 +538,6 @@ module.exports = (pool) => {
         const bucketName = `${process.env.PPDRIVE_BUCKET_PREFIX || 'academic'}-notas`;
         const folderPath = `/cadernos/${caderno_id}`;
         
-        // Salvar texto extraído
         await storage.uploadTextFile(
           textoExtraido,
           bucketName,
@@ -531,7 +545,6 @@ module.exports = (pool) => {
           `${tituloPagina}_transcricao.txt`
         );
         
-        // Salvar notas geradas
         await storage.uploadTextFile(
           notasGeradas,
           bucketName,
@@ -546,9 +559,11 @@ module.exports = (pool) => {
 
       fs.unlinkSync(filePath);
 
+      const [newRecord] = await pool.query('SELECT * FROM paginas WHERE id = ?', [result.insertId]);
+
       res.json({
         success: true,
-        pagina: result.rows[0],
+        pagina: newRecord[0],
         textoExtraidoPreview: textoExtraido.substring(0, 500) + '...'
       });
 
@@ -570,7 +585,6 @@ module.exports = (pool) => {
       const caderno_id = req.body.caderno_id || null;
       let text = '';
 
-      // Extrair texto conforme tipo
       if (mimeType === 'application/pdf' || 
           mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
           mimeType === 'text/plain') {
@@ -587,7 +601,6 @@ module.exports = (pool) => {
         text = await summarizeText(text);
       }
 
-      // Dividir em chunks (Polly tem limite de 3000 caracteres)
       const chunks = splitTextIntoChunks(text, 2800);
       console.log(`Texto dividido em ${chunks.length} partes`);
 
@@ -595,7 +608,6 @@ module.exports = (pool) => {
       const audioFileName = `podcast-${Date.now()}.mp3`;
       const audioPath = path.join(audioDir, audioFileName);
 
-      // Gerar áudio com Amazon Polly para cada chunk
       const audioBuffers = [];
       for (let i = 0; i < chunks.length; i++) {
         console.log(`Sintetizando parte ${i+1} com Amazon Polly...`);
@@ -606,7 +618,6 @@ module.exports = (pool) => {
       const finalBuffer = Buffer.concat(audioBuffers);
       fs.writeFileSync(audioPath, finalBuffer);
 
-      // Upload para PPDRIVE
       let ppdriveLink = null;
       if (process.env.PPDRIVE_URL) {
         try {
@@ -629,17 +640,18 @@ module.exports = (pool) => {
       const titulo = req.body.titulo || `Podcast ${new Date().toLocaleString()}`;
       const duracaoEstimada = Math.ceil(text.split(' ').length / 150) * 60;
 
-      const result = await pool.query(
-        `INSERT INTO podcasts_gerados (caderno_id, titulo, descricao, roteiro, duracao_estimada, url_audio)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      const [result] = await pool.query(
+        'INSERT INTO podcasts_gerados (caderno_id, titulo, descricao, roteiro, duracao_estimada, url_audio) VALUES (?, ?, ?, ?, ?, ?)',
         [caderno_id, titulo, `Gerado a partir de arquivo`, text, duracaoEstimada, `/audio/${audioFileName}`]
       );
 
       fs.unlinkSync(filePath);
 
+      const [newRecord] = await pool.query('SELECT * FROM podcasts_gerados WHERE id = ?', [result.insertId]);
+
       res.json({
         success: true,
-        podcast: result.rows[0],
+        podcast: newRecord[0],
         audioUrl: `/audio/${audioFileName}`,
         ppdriveLink,
         textLength: text.length,
@@ -655,14 +667,14 @@ module.exports = (pool) => {
 
   router.get('/podcasts-gerados', async (req, res) => {
     try {
-      const result = await pool.query(`
+      const [rows] = await pool.query(`
         SELECT pg.*, c.titulo as caderno_titulo,
         (SELECT COUNT(*) FROM episodios_podcast WHERE podcast_gerado_id = pg.id) as total_episodios
         FROM podcasts_gerados pg
         LEFT JOIN cadernos c ON pg.caderno_id = c.id
         ORDER BY pg.created_at DESC
       `);
-      res.json(result.rows);
+      res.json(rows);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -670,17 +682,17 @@ module.exports = (pool) => {
 
   router.get('/podcasts-gerados/:id', async (req, res) => {
     try {
-      const podcast = await pool.query('SELECT * FROM podcasts_gerados WHERE id = $1', [req.params.id]);
-      if (podcast.rows.length === 0) return res.status(404).json({ error: 'Podcast não encontrado' });
+      const [podcast] = await pool.query('SELECT * FROM podcasts_gerados WHERE id = ?', [req.params.id]);
+      if (podcast.length === 0) return res.status(404).json({ error: 'Podcast não encontrado' });
 
-      const episodios = await pool.query(
-        'SELECT * FROM episodios_podcast WHERE podcast_gerado_id = $1 ORDER BY numero',
+      const [episodios] = await pool.query(
+        'SELECT * FROM episodios_podcast WHERE podcast_gerado_id = ? ORDER BY numero',
         [req.params.id]
       );
 
       res.json({
-        ...podcast.rows[0],
-        episodios: episodios.rows
+        ...podcast[0],
+        episodios
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -689,12 +701,13 @@ module.exports = (pool) => {
 
   router.delete('/podcasts-gerados/:id', async (req, res) => {
     try {
-      const pod = await pool.query('SELECT url_audio FROM podcasts_gerados WHERE id = $1', [req.params.id]);
-      if (pod.rows[0]?.url_audio) {
-        const filePath = path.join(__dirname, '..', pod.rows[0].url_audio);
+      const [pod] = await pool.query('SELECT url_audio FROM podcasts_gerados WHERE id = ?', [req.params.id]);
+      if (pod[0]?.url_audio) {
+        const filePath = path.join(__dirname, '..', pod[0].url_audio);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       }
-      await pool.query('DELETE FROM podcasts_gerados WHERE id = $1', [req.params.id]);
+      const [result] = await pool.query('DELETE FROM podcasts_gerados WHERE id = ?', [req.params.id]);
+      if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -708,12 +721,12 @@ module.exports = (pool) => {
       let query = 'SELECT * FROM books';
       const params = [];
       if (status) {
-        query += ' WHERE status = $1';
+        query += ' WHERE status = ?';
         params.push(status);
       }
       query += ' ORDER BY updated_at DESC';
-      const result = await pool.query(query, params);
-      res.json(result.rows);
+      const [rows] = await pool.query(query, params);
+      res.json(rows);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -721,9 +734,9 @@ module.exports = (pool) => {
 
   router.get('/books/:id', async (req, res) => {
     try {
-      const result = await pool.query('SELECT * FROM books WHERE id = $1', [req.params.id]);
-      if (result.rows.length === 0) return res.status(404).json({ error: 'Livro não encontrado' });
-      res.json(result.rows[0]);
+      const [rows] = await pool.query('SELECT * FROM books WHERE id = ?', [req.params.id]);
+      if (rows.length === 0) return res.status(404).json({ error: 'Livro não encontrado' });
+      res.json(rows[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -736,12 +749,12 @@ module.exports = (pool) => {
     }
     const id = uuidv4();
     try {
-      const result = await pool.query(
-        `INSERT INTO books (id, title, author, total_pages, pages_read, status)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      await pool.query(
+        'INSERT INTO books (id, title, author, total_pages, pages_read, status) VALUES (?, ?, ?, ?, ?, ?)',
         [id, title, author, total_pages, 0, status]
       );
-      res.status(201).json(result.rows[0]);
+      const [newRecord] = await pool.query('SELECT * FROM books WHERE id = ?', [id]);
+      res.status(201).json(newRecord[0]);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -750,48 +763,50 @@ module.exports = (pool) => {
   router.put('/books/:id', async (req, res) => {
     const { title, author, total_pages, pages_read, status } = req.body;
     try {
-      const current = await pool.query('SELECT * FROM books WHERE id = $1', [req.params.id]);
-      if (current.rows.length === 0) return res.status(404).json({ error: 'Livro não encontrado' });
+      const [current] = await pool.query('SELECT * FROM books WHERE id = ?', [req.params.id]);
+      if (current.length === 0) return res.status(404).json({ error: 'Livro não encontrado' });
 
-      const currentBook = current.rows[0];
+      const currentBook = current[0];
       const updatedPagesRead = pages_read !== undefined ? pages_read : currentBook.pages_read;
       const updatedTotal = total_pages || currentBook.total_pages;
       if (updatedPagesRead > updatedTotal) {
         return res.status(400).json({ error: 'Páginas lidas não podem exceder o total' });
       }
 
-      await pool.query('BEGIN');
+      const connection = await pool.getConnection();
+      await connection.beginTransaction();
 
-      const updateResult = await pool.query(
-        `UPDATE books SET
-            title = COALESCE($1, title),
-            author = COALESCE($2, author),
-            total_pages = COALESCE($3, total_pages),
-            pages_read = COALESCE($4, pages_read),
-            status = COALESCE($5, status)
-         WHERE id = $6 RETURNING *`,
-        [title, author, total_pages, pages_read, status, req.params.id]
-      );
-
-      if (pages_read !== undefined && pages_read !== currentBook.pages_read) {
-        await pool.query(
-          'INSERT INTO reading_history (book_id, pages_read) VALUES ($1, $2)',
-          [req.params.id, pages_read]
+      try {
+        await connection.query(
+          'UPDATE books SET title = ?, author = ?, total_pages = ?, pages_read = ?, status = ? WHERE id = ?',
+          [title || currentBook.title, author || currentBook.author, updatedTotal, updatedPagesRead, status || currentBook.status, req.params.id]
         );
-      }
 
-      await pool.query('COMMIT');
-      res.json(updateResult.rows[0]);
+        if (pages_read !== undefined && pages_read !== currentBook.pages_read) {
+          await connection.query(
+            'INSERT INTO reading_history (book_id, pages_read) VALUES (?, ?)',
+            [req.params.id, pages_read]
+          );
+        }
+
+        await connection.commit();
+        const [updated] = await pool.query('SELECT * FROM books WHERE id = ?', [req.params.id]);
+        res.json(updated[0]);
+      } catch (err) {
+        await connection.rollback();
+        throw err;
+      } finally {
+        connection.release();
+      }
     } catch (err) {
-      await pool.query('ROLLBACK');
       res.status(500).json({ error: err.message });
     }
   });
 
   router.delete('/books/:id', async (req, res) => {
     try {
-      const result = await pool.query('DELETE FROM books WHERE id = $1', [req.params.id]);
-      if (result.rowCount === 0) return res.status(404).json({ error: 'Livro não encontrado' });
+      const [result] = await pool.query('DELETE FROM books WHERE id = ?', [req.params.id]);
+      if (result.affectedRows === 0) return res.status(404).json({ error: 'Livro não encontrado' });
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -801,46 +816,36 @@ module.exports = (pool) => {
   // ========== ESTATÍSTICAS DE LEITURA ==========
   router.get('/stats', async (req, res) => {
     try {
-      // Garantir que a tabela reading_history existe
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS reading_history (
-          id SERIAL PRIMARY KEY,
-          book_id UUID REFERENCES books(id) ON DELETE CASCADE,
-          pages_read INTEGER NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      const weeklyProgress = await pool.query(`
+      const [weeklyProgress] = await pool.query(`
         SELECT
             DATE(created_at) as date,
             SUM(pages_read) as total_pages
         FROM reading_history
-        WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
         GROUP BY DATE(created_at)
         ORDER BY date
       `);
 
-      const currentMonth = await pool.query(`
+      const [currentMonth] = await pool.query(`
         SELECT COUNT(*) as count
         FROM books
         WHERE status = 'lido'
-          AND EXTRACT(MONTH FROM updated_at) = EXTRACT(MONTH FROM CURRENT_DATE)
-          AND EXTRACT(YEAR FROM updated_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+          AND MONTH(updated_at) = MONTH(CURDATE())
+          AND YEAR(updated_at) = YEAR(CURDATE())
       `);
 
-      const previousMonth = await pool.query(`
+      const [previousMonth] = await pool.query(`
         SELECT COUNT(*) as count
         FROM books
         WHERE status = 'lido'
-          AND EXTRACT(MONTH FROM updated_at) = EXTRACT(MONTH FROM CURRENT_DATE - INTERVAL '1 month')
-          AND EXTRACT(YEAR FROM updated_at) = EXTRACT(YEAR FROM CURRENT_DATE - INTERVAL '1 month')
+          AND MONTH(updated_at) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+          AND YEAR(updated_at) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
       `);
 
       res.json({
-        weekly: weeklyProgress.rows,
-        currentMonthCompleted: parseInt(currentMonth.rows[0].count),
-        previousMonthCompleted: parseInt(previousMonth.rows[0].count)
+        weekly: weeklyProgress,
+        currentMonthCompleted: currentMonth[0].count,
+        previousMonthCompleted: previousMonth[0].count
       });
 
     } catch (err) {
