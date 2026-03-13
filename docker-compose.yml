@@ -2,19 +2,21 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:15-alpine
+    image: mysql:8.0
     container_name: academic_db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: academic_binder
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: academic_binder
+      MYSQL_USER: academic_user
+      MYSQL_PASSWORD: academic_password
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
       - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     networks:
       - academic_network
+    command: --default-authentication-plugin=mysql_native_password
 
   backend:
     build: ./backend
@@ -28,12 +30,22 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
-      - ./backend/credentials:/app/credentials:ro
+    networks:
+      - academic_network
+
+  ppdrive:
+    image: dududaa/ppdrive:latest
+    container_name: academic_ppdrive
+    ports:
+      - "8080:8080"
+    volumes:
+      - ppdrive_data:/data
     networks:
       - academic_network
 
 volumes:
-  postgres_data:
+  mysql_data:
+  ppdrive_data:
 
 networks:
   academic_network:
