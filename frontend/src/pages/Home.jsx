@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import './Home.css';
 
 const Home = () => {
@@ -49,7 +48,7 @@ const Home = () => {
   };
 
   const chartData = stats?.weekly?.map(item => ({
-    date: format(parseISO(item.date), 'dd/MM'),
+    date: format(new Date(item.date), 'dd/MM'),
     pages: parseInt(item.total_pages) || 0
   })) || [];
 
