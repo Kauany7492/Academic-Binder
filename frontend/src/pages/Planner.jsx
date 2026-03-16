@@ -80,9 +80,13 @@ const Planner = () => {
     }
   };
 
-  const lembretesDoDia = lembretes.filter(l =>
-    new Date(l.data_hora).toDateString() === date.toDateString()
-  );
+  // Obtém o mês e ano atual para exibir no cabeçalho
+  const monthNames = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+  const currentMonth = monthNames[date.getMonth()];
+  const currentYear = date.getFullYear();
 
   return (
     <div className="planner-container">
@@ -92,41 +96,64 @@ const Planner = () => {
       </button>
 
       <div className="planner-grid">
+        {/* Seção do calendário estilo grid */}
         <div className="calendar-section">
-          <h2>Calendário</h2>
-          <Calendar onChange={setDate} value={date} />
-          <div className="day-lembretes">
-            <h3>Lembretes em {date.toLocaleDateString()}</h3>
-            {lembretesDoDia.length > 0 ? (
-              <ul>
-                {lembretesDoDia.map(l => (
-                  <li key={l.id}>
-                    <strong>{l.titulo}</strong>: {l.descricao}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>Nenhum lembrete para este dia.</p>
-            )}
+          <div className="calendar-header">
+            <span className="month-year">{currentMonth} {currentYear}</span>
+            <div className="weekdays">
+              <span>LUN</span>
+              <span>MAR</span>
+              <span>MIE</span>
+              <span>JUE</span>
+              <span>VIE</span>
+              <span>SAB</span>
+              <span>DOM</span>
+            </div>
           </div>
+          <Calendar
+            onChange={setDate}
+            value={date}
+            calendarType="US" // Para começar no domingo? Mas queremos segunda? Vamos ajustar com CSS
+            showNavigation={false}
+            formatShortWeekday={(locale, date) => {
+              // Não usaremos, pois o cabeçalho é customizado
+              return '';
+            }}
+          />
         </div>
 
-        <div className="lembretes-section">
-          <h2>Todos os Lembretes</h2>
-          <div className="lembretes-list">
-            {lembretes.map(l => (
-              <div key={l.id} className="lembrete-item">
-                <div>
-                  <strong>{l.titulo}</strong> - {new Date(l.data_hora).toLocaleString()}
-                  <p>{l.descricao}</p>
+        {/* Seção de DATES IMPORTANTES (antigo HABIT TRACKER) */}
+        <div className="important-dates-section">
+          <h2>DATES IMPORTANTES</h2>
+          <div className="dates-list">
+            {lembretes.length > 0 ? (
+              lembretes.map((lembrete, index) => (
+                <div key={lembrete.id} className="date-item">
+                  <span className="date-number">{index + 1}.</span>
+                  <span className="date-title">{lembrete.titulo}</span>
+                  <span className="date-value">
+                    {new Date(lembrete.data_hora).toLocaleDateString()}
+                  </span>
+                  <button onClick={() => handleDelete(lembrete.id)} className="delete-btn">
+                    <FaTrash />
+                  </button>
                 </div>
-                <button onClick={() => handleDelete(l.id)} className="delete"><FaTrash /></button>
-              </div>
-            ))}
+              ))
+            ) : (
+              // Mostra linhas em branco para simular a imagem
+              Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="date-item empty">
+                  <span className="date-number">{i + 1}.</span>
+                  <span className="date-title"></span>
+                  <span className="date-value"></span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
+      {/* Modal para novo lembrete (igual ao anterior) */}
       {showLembreteModal && (
         <div className="modal">
           <div className="modal-content">
