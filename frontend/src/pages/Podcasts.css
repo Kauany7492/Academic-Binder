@@ -1,137 +1,233 @@
-.podcasts-header {
-  display: flex;
-  gap: var(--space-lg);
-  margin-bottom: var(--space-xl);
-  flex-wrap: wrap;
+.planner-container {
+  padding: var(--space-lg);
 }
 
-.podcasts-section {
-  margin-top: var(--space-xl);
-}
-
-.podcasts-section h2 {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+.planner-container h1 {
+  color: var(--primary-dark);
   margin-bottom: var(--space-lg);
 }
 
-.podcasts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-lg);
+.dark-theme .planner-container h1 {
+  color: var(--text-dark);
 }
 
-.podcast-card {
+.planner-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+  margin-top: var(--space-lg);
+}
+
+/* ===== SEÇÃO DO CALENDÁRIO ===== */
+.calendar-section {
   background: var(--card-light);
   border-radius: var(--radius-md);
   padding: var(--space-lg);
   box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
-  transition: var(--transition);
 }
 
-.dark-theme .podcast-card {
+.dark-theme .calendar-section {
   background: var(--card-dark);
 }
 
-.podcast-card.generated {
-  border-left: 0.25rem solid var(--secondary-dark);
+.calendar-header {
+  text-align: center;
+  margin-bottom: var(--space-md);
 }
 
-.podcast-meta {
-  display: flex;
-  justify-content: space-between;
-  margin: var(--space-md) 0;
-  font-size: 0.9rem;
+.month-year {
+  font-size: 1.5rem;
+  font-weight: bold;
   color: var(--primary-dark);
+  display: block;
+  margin-bottom: var(--space-sm);
 }
 
-.dark-theme .podcast-meta {
+.dark-theme .month-year {
+  color: var(--text-dark);
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-weight: 600;
+  color: var(--primary-medium);
+  border-bottom: 0.0625rem solid var(--primary-light);
+  padding-bottom: var(--space-xs);
+}
+
+.dark-theme .weekdays {
   color: var(--secondary-light);
+  border-bottom-color: var(--secondary-medium);
 }
 
-.podcast-actions {
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-md);
-  flex-wrap: wrap;
-}
-
-.podcast-actions button,
-.podcast-actions a {
-  padding: var(--space-xs) var(--space-md);
+/* Estilização do react-calendar */
+.react-calendar {
+  width: 100%;
   border: none;
+  background: transparent;
+  font-family: inherit;
+}
+
+.react-calendar__navigation {
+  display: none; /* Escondemos a navegação padrão, pois já temos o mês/ano no cabeçalho */
+}
+
+.react-calendar__month-view__weekdays {
+  display: none !important; /* Esconder os dias da semana padrão, usamos o nosso */
+}
+
+.react-calendar__month-view__days {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.125rem;
+}
+
+.react-calendar__tile {
+  background: transparent;
+  border: 0.0625rem solid var(--primary-light);
+  color: var(--primary-dark);
+  padding: var(--space-sm) 0;
+  text-align: center;
+  font-size: 1rem;
   border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: 0.9rem;
-  background: var(--gradient-primary);
-  color: white;
-}
-
-.podcast-actions button.delete {
-  background: linear-gradient(135deg, #dc3545, #b02a37);
-}
-
-.podcast-roteiro {
-  background: var(--card-light);
-  padding: var(--space-lg);
-  border-radius: var(--radius-md);
-  margin: var(--space-lg) 0;
-  max-height: 31.25rem; /* 500px convertido para rem: 500 / 16 = 31.25 */
-  overflow-y: auto;
-  white-space: pre-wrap;
-  font-family: monospace;
-  line-height: 1.5;
-}
-
-.dark-theme .podcast-roteiro {
-  background: var(--primary-dark);
-  color: white;
-}
-
-.podcast-item {
-  background: var(--card-light);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  margin-bottom: var(--space-sm);
-}
-
-.dark-theme .podcast-item {
-  background: var(--card-dark);
-}
-
-.podcast-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-sm);
-}
-
-.podcast-info button {
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  cursor: pointer;
+  transition: var(--transition);
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.resumo {
-  color: var(--primary-dark);
-  font-style: italic;
-  margin: var(--space-sm) 0;
+.dark-theme .react-calendar__tile {
+  border-color: var(--secondary-medium);
+  color: var(--text-dark);
 }
 
+.react-calendar__tile:hover {
+  background: var(--primary-light);
+  transform: scale(1.05);
+}
+
+.dark-theme .react-calendar__tile:hover {
+  background: var(--primary-medium);
+}
+
+.react-calendar__tile--active {
+  background: var(--gradient-primary) !important;
+  color: white !important;
+  border-color: transparent;
+}
+
+.react-calendar__tile--now {
+  background: var(--secondary-light);
+  font-weight: bold;
+}
+
+.dark-theme .react-calendar__tile--now {
+  background: var(--secondary-medium);
+  color: var(--primary-dark);
+}
+
+/* ===== SEÇÃO DATES IMPORTANTES ===== */
+.important-dates-section {
+  background: var(--card-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+.dark-theme .important-dates-section {
+  background: var(--card-dark);
+}
+
+.important-dates-section h2 {
+  color: var(--primary-dark);
+  font-size: 1.5rem;
+  margin-bottom: var(--space-lg);
+  text-align: center;
+  border-bottom: 0.125rem solid var(--primary-medium);
+  padding-bottom: var(--space-sm);
+}
+
+.dark-theme .important-dates-section h2 {
+  color: var(--text-dark);
+  border-bottom-color: var(--secondary-light);
+}
+
+.dates-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.date-item {
+  display: grid;
+  grid-template-columns: 2rem 1fr 8rem 2rem;
+  align-items: center;
+  padding: var(--space-xs) 0;
+  border-bottom: 0.0625rem dashed var(--primary-light);
+  font-size: 0.95rem;
+}
+
+.dark-theme .date-item {
+  border-bottom-color: var(--secondary-medium);
+}
+
+.date-item.empty {
+  color: var(--primary-light);
+}
+
+.dark-theme .date-item.empty {
+  color: var(--secondary-medium);
+}
+
+.date-number {
+  font-weight: 600;
+  color: var(--primary-medium);
+}
+
+.dark-theme .date-number {
+  color: var(--secondary-light);
+}
+
+.date-title {
+  color: var(--primary-dark);
+  font-weight: 500;
+}
+
+.dark-theme .date-title {
+  color: var(--text-dark);
+}
+
+.date-value {
+  color: var(--primary-dark);
+  text-align: right;
+}
+
+.dark-theme .date-value {
+  color: var(--text-dark);
+}
+
+.date-item button.delete-btn {
+  background: transparent;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.date-item button.delete-btn:hover {
+  background: rgba(220, 53, 69, 0.1);
+  transform: scale(1.1);
+}
+
+/* Responsividade */
 @media (max-width: 768px) {
-  .podcasts-grid {
+  .planner-grid {
     grid-template-columns: 1fr;
   }
 }
