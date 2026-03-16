@@ -1,99 +1,92 @@
-# 📚 Academic Binder - Intelligent Academic Organizer
+---
 
-[![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org)
-[![React](https://img.shields.io/badge/React-18.x-blue.svg)](https://reactjs.org)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15.x-blue.svg)](https://www.postgresql.org)
-[![Docker](https://img.shields.io/badge/Docker-✓-blue.svg)](https://www.docker.com)
-[![Google Cloud](https://img.shields.io/badge/Google%20Cloud-TTS%20%7C%20Vision%20%7C%20Drive-orange.svg)](https://cloud.google.com)
+# 🧠 Architecture Diagram
 
-Academic Binder is a comprehensive, AI-powered academic organization platform that helps students manage their studies efficiently. It combines note-taking, file management, podcast generation, smart reminders, and **Google Drive integration** for seamless backup and organization of all your academic materials.
+To visualize the system architecture, create a diagram located at:
+
+```
+docs/architecture.png
+```
+
+Recommended structure:
+
+```
+Frontend (React)
+      │
+      ▼
+API Gateway (Node / Express)
+        │
+ ┌──────┼─────────┬────────────────┐
+ ▼      ▼         ▼                ▼
+
+TiDB  OpenAI  AWS Polly  Google Drive
+
+      │
+      ▼
+PPDRIVE Storage
+```
+
+### Diagram Tools (Recommended)
+
+Professional tools commonly used for system architecture diagrams:
+
+- Excalidraw
+- Lucidchart
+- Figma
+- Draw.io
+
+These tools allow you to create clean architecture diagrams suitable for documentation, presentations, and technical portfolios.
 
 ---
 
-## 📋 Table of Contents
-- [Features (English)](#-features-english)
-- [Quick Start Guide](#-quick-start-guide)
-- User Guide (English)
-- Configuration Guide
-- Docker Deployment
+# 📊 System Design
+
+This section describes the high-level system design decisions behind Academic Binder.  
+It is particularly useful for **technical interviews, portfolio evaluation, and engineering documentation**.
 
 ---
 
-## ✨ Features (English)
+## Problem
 
-### 📓 **Smart Notebooks**
-- Create and organize notebooks by subject/course
-- Custom color coding for visual organization
-- Quick access to recently used notebooks
-- Search functionality to find notebooks by name
-- **University links**: Add subject-specific website links to each notebook
+Students need a **unified platform** capable of managing their academic workflow efficiently.
 
-### 📝 **Intelligent Note-Taking**
-- **Multiple note-taking methods**: Cornell Method, Outline Method, Free form
-- **Audio transcription**: Record lectures or voice notes, automatically transcribed by AI (Whisper)
-- **File upload support**: Upload images, PDFs, DOCX, TXT files to generate structured notes
-- **Text highlighting**: Mark important passages with colors and add comments
-- **Export to Google Drive**: Each page can be exported to a dedicated folder structure:
-  - `Notebook Name` > `Page Name` > `PageName.txt` (contains the note content)
-  - All transcriptions, PDFs, and audio files are also organized in the same folder
+The system should allow users to:
 
-### 🎙️ **AI-Powered Podcast Generation**
-- Transform your notes, PDFs, and documents into engaging podcasts
-- Google Cloud Text-to-Speech integration for natural-sounding audio
-- Automatic script generation based on your content
-- Listen to your study materials as podcasts
-- Download generated podcasts for offline listening
+- Manage structured study notes
+- Store academic documents and media
+- Generate study podcasts from notes
+- Plan academic tasks and schedules
 
-### 📅 **Smart Planner**
-- Interactive calendar for important dates
-- Weekly planner for organizing tasks and activities
-- **Intelligent reminders**: Set reminders that trigger browser notifications
-- Organize reminders by notebook/subject
-
-### 📄 **PDF & Media Management**
-- Upload and store PDF, audio, and video files
-- AI-generated summaries of PDF content
-- In-browser PDF preview
-- **Automatic transcription** of audio and video files (using Whisper AI)
-- All files are automatically saved to Google Drive in the appropriate folder structure:
-  - `Notebook Name` > `Page Name` > `audio/` or `video/` or `pdf/`
-  - Transcripts are saved as `.txt` files alongside the original media
-
-### ☁️ **Google Drive Integration**
-- One-click authentication with Google account
-- Automatic folder creation for each notebook and page
-- All notes, transcripts, PDFs, and media files are backed up to your personal Google Drive
-- Direct links to view files in Drive
-- Secure token storage (refresh tokens) for continuous access
-
-### 🎨 **Customizable Interface**
-- Light and dark themes
-- Fully responsive design (desktop, tablet, mobile)
-- Academic-friendly color palette: `#806130`, `#BFA478`, `#FFF7EA`, `#EBF5FF`, `#5D86AA`, `#123554`
+The goal is to provide an **AI-enhanced academic workspace** that centralizes all learning activities.
 
 ---
 
-## 🚀 Quick Start Guide
+## Constraints
 
-### Prerequisites
-- Docker and Docker Compose installed
-- Google Cloud account with the following APIs enabled:
-  - Cloud Text-to-Speech API
-  - Cloud Vision API
-  - Google Drive API
-- OpenAI API key
-- Google OAuth 2.0 credentials (Client ID and Client Secret)
+The platform must handle several technical constraints:
 
-### One-Command Setup (Recommended)
+- Large file uploads (PDFs, audio, video)
+- Real-time or near real-time audio processing
+- Latency from external AI APIs
+- Scalable storage for files and user data
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/academic-binder.git
-cd academic-binder
+These constraints influence architecture decisions related to **storage, processing, and scalability**.
 
-# Set up environment variables
-cp backend/.env.example backend/.env
-# Edit backend/.env with your API keys and OAuth credentials
+---
 
-# Start the application with Docker
-docker-compose up --build
+## Solution
+
+To address the problem and constraints, Academic Binder adopts the following architectural strategies.
+
+### Architecture Decisions
+
+| Decision | Reason |
+|--------|--------|
+| Distributed SQL Database | Enables horizontal scalability and high availability |
+| External File Storage | Prevents database overload and improves performance |
+| Asynchronous Audio Generation | Ensures responsive user experience during podcast generation |
+| REST API Architecture | Provides simple, modular, and widely compatible backend services |
+
+These decisions help ensure that the platform remains **scalable, responsive, and maintainable** as usage grows.
+
+---
