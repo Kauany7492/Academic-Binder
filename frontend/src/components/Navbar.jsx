@@ -2,7 +2,6 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { FaHome, FaCalendarAlt, FaBook, FaPodcast, FaFilePdf, FaMoon, FaSun, FaBookOpen } from 'react-icons/fa';
-import './Navbar.css';
 
 const Navbar = () => {
   const { isDark, toggleTheme } = useTheme();
