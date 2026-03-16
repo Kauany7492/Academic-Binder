@@ -1,9 +1,9 @@
 .home-container {
-  padding: 20px;
+  padding: var(--space-lg);
 }
 
 .page-title {
-  margin-bottom: 30px;
+  margin-bottom: var(--space-xl);
   color: var(--primary-dark);
 }
 
@@ -12,10 +12,10 @@
 }
 
 .reading-stats {
-  margin-bottom: 40px;
-  padding: 20px;
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
   background: var(--card-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .dark-theme .reading-stats {
@@ -25,14 +25,14 @@
 .stats-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 20px;
-  margin-top: 20px;
+  gap: var(--space-lg);
+  margin-top: var(--space-lg);
 }
 
 .stats-card {
   background: var(--secondary-light);
-  padding: 15px;
-  border-radius: 8px;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
 }
 
 .dark-theme .stats-card {
@@ -40,7 +40,7 @@
 }
 
 .stats-card h3 {
-  margin-bottom: 15px;
+  margin-bottom: var(--space-md);
   color: var(--primary-dark);
 }
 
@@ -51,7 +51,7 @@
 .comparison-numbers {
   display: flex;
   justify-content: space-around;
-  margin-top: 20px;
+  margin-top: var(--space-lg);
 }
 
 .comparison-numbers div {
@@ -62,7 +62,7 @@
   display: block;
   font-size: 0.9rem;
   color: var(--primary-dark);
-  margin-bottom: 5px;
+  margin-bottom: var(--space-xs);
 }
 
 .dark-theme .comparison-numbers .label {
@@ -80,37 +80,37 @@
 }
 
 .quick-access {
-  margin-top: 40px;
+  margin-top: var(--space-xl);
 }
 
 .section {
-  margin-bottom: 30px;
+  margin-bottom: var(--space-xl);
 }
 
 .section h3 {
-  margin-bottom: 15px;
+  margin-bottom: var(--space-md);
   color: var(--primary-medium);
 }
 
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 10px;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-sm);
 }
 
 .card {
   background: var(--card-light);
-  padding: 15px;
-  border-radius: 8px;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s;
+  transition: var(--transition);
 }
 
 .card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transform: translateY(-0.25rem);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
 }
 
 .dark-theme .card {
@@ -120,10 +120,10 @@
 .empty-message {
   color: var(--primary-dark);
   font-style: italic;
-  padding: 20px;
+  padding: var(--space-lg);
   text-align: center;
   background: var(--card-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .dark-theme .empty-message {
@@ -133,7 +133,7 @@
 
 .view-all {
   display: inline-block;
-  margin-top: 10px;
+  margin-top: var(--space-sm);
   color: var(--primary-medium);
   text-decoration: none;
   font-weight: bold;
