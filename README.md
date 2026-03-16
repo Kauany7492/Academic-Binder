@@ -13,9 +13,9 @@ Academic Binder is a comprehensive, AI-powered academic organization platform th
 ## 📋 Table of Contents
 - [Features (English)](#-features-english)
 - [Quick Start Guide](#-quick-start-guide)
-- [User Guide (English)]
-- [Configuration Guide]
-- [Docker Deployment]
+- User Guide (English)
+- Configuration Guide
+- Docker Deployment
 
 ---
 
