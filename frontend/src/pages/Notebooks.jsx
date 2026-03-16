@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaSearch } from 'react-icons/fa';
+import './Notebooks.css';
 
 const Notebooks = () => {
   const [notebooks, setNotebooks] = useState([]);
@@ -56,32 +57,52 @@ const Notebooks = () => {
   );
 
   return (
-    <div className="page-container">
-      <h1>Notebooks</h1>
-      <div className="notebooks-toolbar">
-        <input
-          type="text"
-          placeholder="Buscar cadernos..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="search-input"
-        />
+    <div className="notebooks-container">
+      <div className="notebooks-header">
+        <h1>Meus Cadernos</h1>
         <button onClick={() => setShowModal(true)} className="btn-primary">
           <FaPlus /> Novo Caderno
         </button>
       </div>
 
+      <div className="search-wrapper">
+        <FaSearch className="search-icon" />
+        <input
+          type="text"
+          placeholder="Buscar cadernos por nome..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="search-input"
+        />
+      </div>
+
       <div className="notebooks-grid">
         {filtered.map(notebook => (
-          <div key={notebook.id} className="notebook-card" style={{ borderTop: `4px solid ${notebook.cor}` }}>
+          <div
+            key={notebook.id}
+            className="notebook-card"
+            style={{ borderTop: `4px solid ${notebook.cor}` }}
+          >
             <h3>{notebook.titulo}</h3>
             <p>{notebook.descricao}</p>
             <div className="card-actions">
-              <Link to={`/notebooks/${notebook.id}`} className="btn-view">Acessar</Link>
-              <button onClick={() => { setEditing(notebook); setForm(notebook); setShowModal(true); }}>
+              <Link to={`/notebooks/${notebook.id}`} className="btn-view">
+                Acessar
+              </Link>
+              <button
+                onClick={() => {
+                  setEditing(notebook);
+                  setForm(notebook);
+                  setShowModal(true);
+                }}
+                className="icon-btn"
+              >
                 <FaEdit />
               </button>
-              <button onClick={() => handleDelete(notebook.id)}>
+              <button
+                onClick={() => handleDelete(notebook.id)}
+                className="icon-btn delete"
+              >
                 <FaTrash />
               </button>
             </div>
@@ -94,26 +115,37 @@ const Notebooks = () => {
           <div className="modal-content">
             <h3>{editing ? 'Editar' : 'Novo'} Caderno</h3>
             <form onSubmit={handleSubmit}>
-              <input
-                type="text"
-                placeholder="Título"
-                value={form.titulo}
-                onChange={(e) => setForm({...form, titulo: e.target.value})}
-                required
-              />
-              <textarea
-                placeholder="Descrição"
-                value={form.descricao}
-                onChange={(e) => setForm({...form, descricao: e.target.value})}
-              />
-              <input
-                type="color"
-                value={form.cor}
-                onChange={(e) => setForm({...form, cor: e.target.value})}
-              />
+              <label>
+                Título *
+                <input
+                  type="text"
+                  value={form.titulo}
+                  onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+                  required
+                />
+              </label>
+              <label>
+                Descrição
+                <textarea
+                  value={form.descricao}
+                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                />
+              </label>
+              <label>
+                Cor
+                <input
+                  type="color"
+                  value={form.cor}
+                  onChange={(e) => setForm({ ...form, cor: e.target.value })}
+                />
+              </label>
               <div className="modal-actions">
-                <button type="submit">Salvar</button>
-                <button type="button" onClick={() => setShowModal(false)}>Cancelar</button>
+                <button type="submit" className="btn-primary">
+                  Salvar
+                </button>
+                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">
+                  Cancelar
+                </button>
               </div>
             </form>
           </div>
