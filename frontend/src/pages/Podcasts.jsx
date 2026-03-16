@@ -22,6 +22,16 @@ const Podcasts = () => {
     fetchCadernos();
   }, []);
 
+  useEffect(() => {
+    const handleAudioEnd = () => {
+      setPlaying(null);
+    };
+    audioRef.current.addEventListener('ended', handleAudioEnd);
+    return () => {
+      audioRef.current.removeEventListener('ended', handleAudioEnd);
+    };
+  }, []);
+
   const fetchPodcasts = async () => {
     try {
       const res = await api.get('/podcasts');
@@ -113,10 +123,15 @@ const Podcasts = () => {
     }
   };
 
+  const getCadernoNome = (cadernoId) => {
+    const caderno = cadernos.find(c => c.id === cadernoId);
+    return caderno ? caderno.titulo : 'Sem caderno';
+  };
+
   return (
-    <div className="page-container">
+    <div className="podcasts-container">
       <h1>Podcasts</h1>
-      
+
       <div className="podcasts-header">
         <div className="upload-area">
           <label htmlFor="podcast-upload" className="btn-primary">
@@ -169,8 +184,8 @@ const Podcasts = () => {
                 <input type="file" accept=".pdf,.docx,.txt" onChange={(e) => setFileForPodcast(e.target.files[0])} />
               </label>
               {fileForPodcast && (
-                <button 
-                  onClick={handleGenerateFromFile} 
+                <button
+                  onClick={handleGenerateFromFile}
                   disabled={generating}
                   className="btn-primary"
                 >
@@ -183,6 +198,7 @@ const Podcasts = () => {
         </div>
       )}
 
+      {/* Podcasts Gerados por IA */}
       <div className="podcasts-section">
         <h2><FaRobot /> Podcasts Gerados por IA</h2>
         <div className="podcasts-grid">
@@ -228,14 +244,24 @@ const Podcasts = () => {
         </div>
       )}
 
+      {/* Podcasts Enviados */}
       <div className="podcasts-section">
         <h2><FaUpload /> Podcasts Enviados</h2>
         <div className="podcasts-list">
           {podcasts.map(pod => (
-            <div key={pod.id} className="podcast-item">
-              <div className="podcast-info">
-                <h3>{pod.titulo}</h3>
-                <button onClick={() => handlePlay(pod)}>
+            <div key={pod.id} className="podcast-player-item">
+              <div className="player-container">
+                <div className={`vinyl-disc ${playing === pod.id ? 'spinning' : ''}`}>
+                  <div className="vinyl-inner"></div>
+                </div>
+                <div className="player-info">
+                  <span className="podcast-title">{pod.titulo}</span>
+                  <span className="podcast-subject">{getCadernoNome(pod.caderno_id)}</span>
+                </div>
+                <button
+                  className={`play-button ${playing === pod.id ? 'playing' : ''}`}
+                  onClick={() => handlePlay(pod)}
+                >
                   {playing === pod.id ? <FaPause /> : <FaPlay />}
                 </button>
               </div>
