@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { FaMicrophone, FaUpload, FaLink, FaTrash } from 'react-icons/fa';
+import { FaMicrophone, FaUpload, FaLink, FaTrash, FaGoogleDrive, FaHighlighter } from 'react-icons/fa';
 import AudioRecorder from '../components/AudioRecorder';
 import DownloadButton from '../components/DownloadButton';
 
@@ -22,6 +22,19 @@ const NotebookDetail = () => {
   const [uploadingNotes, setUploadingNotes] = useState(false);
   const [pdfs, setPdfs] = useState([]);
   const [podcasts, setPodcasts] = useState([]);
+  const [driveToken, setDriveToken] = useState(localStorage.getItem('driveToken'));
+  const [exporting, setExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState({});
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      localStorage.setItem('driveToken', token);
+      setDriveToken(token);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     fetchNotebook();
@@ -149,32 +162,57 @@ const NotebookDetail = () => {
     setShowRecorder(false);
   };
 
+  const handleGoogleLogin = (paginaId) => {
+    window.location.href = `${process.env.REACT_APP_API_URL}/auth/google?state=${paginaId}`;
+  };
+
+  const exportToDrive = async (paginaId) => {
+    if (!driveToken) {
+      handleGoogleLogin(paginaId);
+      return;
+    }
+    setExporting(true);
+    try {
+      const res = await api.post('/drive/export-page', { pagina_id: paginaId }, {
+        headers: { Authorization: `Bearer ${driveToken}` }
+      });
+      setExportStatus({ ...exportStatus, [paginaId]: { success: true, link: res.data.link } });
+    } catch (error) {
+      console.error('Erro ao exportar:', error);
+      setExportStatus({ ...exportStatus, [paginaId]: { success: false, error: error.response?.data?.error || 'Erro' } });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
-    <div className="page-container">
+    <div className="notebook-detail-container">
       {notebook && (
         <>
           <div className="notebook-header">
             <h1>{notebook.titulo}</h1>
             <div className="university-link">
               {editingLink ? (
-                <div>
+                <div className="link-edit">
                   <input
                     type="url"
                     value={linkUniversidade}
                     onChange={(e) => setLinkUniversidade(e.target.value)}
                     placeholder="https://universidade.edu.br/materia"
                   />
-                  <button onClick={handleUpdateLink}>Salvar</button>
-                  <button onClick={() => setEditingLink(false)}>Cancelar</button>
+                  <button onClick={handleUpdateLink} className="btn-primary">Salvar</button>
+                  <button onClick={() => setEditingLink(false)} className="btn-secondary">Cancelar</button>
                 </div>
               ) : (
                 <div>
                   {notebook.link_universidade ? (
-                    <a href={notebook.link_universidade} target="_blank" rel="noopener noreferrer">
+                    <a href={notebook.link_universidade} target="_blank" rel="noopener noreferrer" className="link-btn">
                       <FaLink /> Site da Universidade
                     </a>
                   ) : (
-                    <button onClick={() => setEditingLink(true)}>Adicionar link da universidade</button>
+                    <button onClick={() => setEditingLink(true)} className="btn-secondary">
+                      Adicionar link da universidade
+                    </button>
                   )}
                 </div>
               )}
@@ -183,41 +221,63 @@ const NotebookDetail = () => {
               <button onClick={() => setShowRecorder(true)} className="btn-primary">
                 <FaMicrophone /> Nova Nota por Áudio
               </button>
-              <label className="btn-primary">
+              <label className="btn-primary upload-label">
                 <FaUpload /> Gerar Notas de Arquivo
                 <input type="file" onChange={handleFileUploadForNotes} style={{ display: 'none' }} />
               </label>
             </div>
           </div>
-          
+
           {showRecorder && (
             <div className="modal">
               <div className="modal-content">
                 <h3>Gravar Áudio para Notas</h3>
-                <select value={selectedMetodo} onChange={(e) => setSelectedMetodo(e.target.value)}>
+                <select value={selectedMetodo} onChange={(e) => setSelectedMetodo(e.target.value)} className="input-select">
                   <option value="cornell">Método Cornell</option>
                   <option value="esboço">Método Esboço</option>
                 </select>
-                <AudioRecorder 
-                  notebookId={id} 
+                <AudioRecorder
+                  notebookId={id}
                   metodo={selectedMetodo}
                   onProcessed={handleAudioProcessed}
                 />
-                <button onClick={() => setShowRecorder(false)}>Fechar</button>
+                <div className="modal-actions">
+                  <button onClick={() => setShowRecorder(false)} className="btn-secondary">Fechar</button>
+                </div>
               </div>
             </div>
           )}
-          
+
           <div className="paginas-list">
             <h2>Páginas</h2>
             {paginas.map(pagina => (
               <div key={pagina.id} className="pagina-card" onMouseUp={() => setCurrentPagina(pagina)}>
                 <div className="pagina-header">
                   <h3>{pagina.titulo}</h3>
-                  <button onClick={() => handleDeletePagina(pagina.id)} className="delete"><FaTrash /></button>
+                  <div className="pagina-actions">
+                    <button
+                      onClick={() => exportToDrive(pagina.id)}
+                      disabled={exporting}
+                      className="icon-btn export"
+                      title="Exportar para Google Drive"
+                    >
+                      <FaGoogleDrive />
+                    </button>
+                    <button onClick={() => handleDeletePagina(pagina.id)} className="icon-btn delete" title="Excluir página">
+                      <FaTrash />
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="pagina-content">
+
+                {exportStatus[pagina.id]?.success && (
+                  <div className="drive-link">
+                    <a href={exportStatus[pagina.id].link} target="_blank" rel="noopener noreferrer" className="link-success">
+                      ✅ Ver no Google Drive
+                    </a>
+                  </div>
+                )}
+
+                <div className="pagina-content" onMouseUp={handleTextSelection}>
                   <p>{pagina.conteudo}</p>
                 </div>
 
@@ -280,8 +340,8 @@ const NotebookDetail = () => {
               <textarea value={highlightComment} onChange={(e) => setHighlightComment(e.target.value)} />
             </label>
             <div className="modal-actions">
-              <button onClick={handleSaveHighlight}>Salvar</button>
-              <button onClick={() => setShowHighlightModal(false)}>Cancelar</button>
+              <button onClick={handleSaveHighlight} className="btn-primary">Salvar</button>
+              <button onClick={() => setShowHighlightModal(false)} className="btn-secondary">Cancelar</button>
             </div>
           </div>
         </div>
