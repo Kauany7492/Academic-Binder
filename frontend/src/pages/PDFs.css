@@ -1,0 +1,169 @@
+.pdfs-container {
+  padding: var(--space-lg);
+}
+
+.upload-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: center;
+  margin-bottom: var(--space-xl);
+  background: var(--card-light);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+}
+
+.dark-theme .upload-form {
+  background: var(--card-dark);
+}
+
+.upload-form input[type="text"],
+.upload-form select,
+.upload-form input[type="file"],
+.upload-form button {
+  flex: 1 1 auto;
+  min-width: 12rem;
+  margin-bottom: 0; /* remove margem inferior pois já temos gap */
+}
+
+.upload-form input[type="file"] {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  display: inline-block;
+  text-align: center;
+  transition: var(--transition);
+  box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.1);
+}
+
+.upload-form input[type="file"]:hover {
+  transform: translateY(-0.125rem);
+  box-shadow: 0 0.375rem 0.5rem rgba(0,0,0,0.15);
+}
+
+.upload-form button {
+  margin: 0;
+}
+
+.pdfs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-lg);
+}
+
+.pdf-card {
+  background: var(--card-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
+  transition: var(--transition);
+}
+
+.dark-theme .pdf-card {
+  background: var(--card-dark);
+}
+
+.pdf-card h3 {
+  margin-bottom: var(--space-sm);
+  color: var(--primary-dark);
+}
+
+.dark-theme .pdf-card h3 {
+  color: var(--text-dark);
+}
+
+.pdf-card .resumo {
+  color: var(--primary-dark);
+  font-style: italic;
+  margin: var(--space-sm) 0;
+  font-size: 0.9rem;
+}
+
+.dark-theme .pdf-card .resumo {
+  color: var(--secondary-light);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.actions button,
+.actions a {
+  padding: var(--space-xs) var(--space-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.9rem;
+  background: var(--gradient-primary);
+  color: white;
+  transition: var(--transition);
+}
+
+.actions button.delete {
+  background: linear-gradient(135deg, #dc3545, #b02a37);
+}
+
+.actions button:hover,
+.actions a:hover {
+  transform: translateY(-0.125rem);
+  box-shadow: 0 0.375rem 0.5rem rgba(0,0,0,0.15);
+}
+
+.pdf-preview-modal .modal-content {
+  width: 90vw;
+  max-width: 1200px;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-container {
+  flex: 1;
+  overflow-y: auto;
+  background: #f5f5f5;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.dark-theme .pdf-container {
+  background: var(--primary-dark);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.modal-header h2 {
+  color: var(--primary-dark);
+}
+
+.dark-theme .modal-header h2 {
+  color: var(--text-dark);
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--primary-dark);
+  min-height: auto;
+  padding: var(--space-xs);
+}
+
+.dark-theme .close-btn {
+  color: var(--text-dark);
+}
