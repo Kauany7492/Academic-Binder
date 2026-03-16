@@ -1,11 +1,17 @@
 :root {
-  /* Paleta de Cores */
+  /* Paleta de Cores Base */
   --primary-dark: #123554;
   --primary-medium: #5D86AA;
   --primary-light: #EBF5FF;
   --secondary-dark: #806130;
   --secondary-medium: #BFA478;
   --secondary-light: #FFF7EA;
+  
+  /* Novas cores para temas */
+  --dark-bg: #021C33;
+  --dark-accent: #5D86AA;
+  --light-bg: #AA8C5D;
+  --light-accent: #553B12;
   
   /* Gradientes */
   --gradient-primary: linear-gradient(135deg, var(--primary-medium), var(--primary-dark));
@@ -15,13 +21,19 @@
   /* Temas */
   --bg-light: var(--secondary-light);
   --text-light: var(--primary-dark);
-  --bg-dark: var(--primary-dark);
+  --bg-dark: var(--dark-bg);
   --text-dark: var(--secondary-light);
   --card-light: var(--primary-light);
-  --card-dark: var(--primary-medium);
+  --card-dark: var(--dark-accent);
+  
+  /* Novas variáveis para bordas e containers */
+  --border-light: var(--light-accent);
+  --border-dark: var(--dark-accent);
+  --container-bg-light: var(--light-bg);
+  --container-bg-dark: var(--dark-bg);
   
   /* Transição */
-  --transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  --transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   
   /* Espaçamentos */
   --space-xs: 0.25rem;
@@ -83,30 +95,13 @@ button,
   background: var(--gradient-primary);
   color: white;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
-  min-height: 2.5rem;
-  line-height: 1.5;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
+  border: 1px solid transparent;
 }
 
 button:hover,
-.btn-primary:hover,
-.btn-secondary:hover,
-.btn-danger:hover,
-.btn-export:hover,
-.btn-download:hover,
-.btn-preview:hover {
+.btn-primary:hover {
   transform: translateY(-0.125rem);
   box-shadow: 0 0.375rem 0.5rem rgba(0, 0, 0, 0.15);
-}
-
-/* Remover sombra do botão de tema */
-.theme-toggle:hover {
-  transform: none;
-  box-shadow: none;
 }
 
 .btn-secondary {
@@ -126,6 +121,16 @@ button:hover,
   font-size: 0.875rem;
 }
 
+.theme-toggle {
+  background: transparent;
+  box-shadow: none;
+  border: 1px solid currentColor;
+}
+.theme-toggle:hover {
+  box-shadow: none;
+  transform: none;
+}
+
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -138,21 +143,20 @@ textarea,
 select {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
-  border: 0.0625rem solid var(--primary-medium);
+  border: 0.125rem solid var(--primary-medium);
   border-radius: var(--radius-md);
   background-color: rgba(255, 255, 255, 0.9);
   color: var(--primary-dark);
   font-size: 1rem;
   transition: var(--transition);
-  min-height: 2.5rem;
 }
 
 .dark-theme input,
 .dark-theme textarea,
 .dark-theme select {
-  background-color: var(--primary-dark);
+  background-color: var(--dark-bg);
   color: var(--text-dark);
-  border-color: var(--secondary-medium);
+  border-color: var(--dark-accent);
 }
 
 input:focus,
@@ -163,42 +167,31 @@ select:focus {
   box-shadow: 0 0 0 0.1875rem rgba(128, 97, 48, 0.25);
 }
 
-/* Espaçamento entre inputs em formulários */
-form label {
-  display: block;
-  margin-bottom: var(--space-xs);
+/* Espaçamento entre inputs */
+input + input,
+input + textarea,
+textarea + input,
+textarea + textarea,
+select + select,
+.input-group {
+  margin-top: var(--space-md);
 }
 
-form input,
-form textarea,
-form select {
-  margin-bottom: var(--space-lg);
-}
-
-/* Estilo para input file (tentativa) */
-input[type="file"] {
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  cursor: pointer;
-  padding: var(--space-sm) var(--space-lg);
-  width: auto;
-  display: inline-block;
-}
-
-/* ========== CARDS ========== */
+/* ========== CARDS E CONTAINERS ========== */
 .card,
 .notebook-card,
 .book-card,
 .pdf-card,
 .podcast-card,
 .pagina-card,
-.lembrete-item {
+.lembrete-item,
+.modal-content {
   background: var(--card-light);
   border-radius: var(--radius-md);
   padding: var(--space-lg);
   box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
   transition: var(--transition);
+  border: 1px solid var(--border-light);
 }
 
 .dark-theme .card,
@@ -207,9 +200,11 @@ input[type="file"] {
 .dark-theme .pdf-card,
 .dark-theme .podcast-card,
 .dark-theme .pagina-card,
-.dark-theme .lembrete-item {
+.dark-theme .lembrete-item,
+.dark-theme .modal-content {
   background: var(--card-dark);
   color: var(--text-dark);
+  border-color: var(--border-dark);
 }
 
 .card:hover {
@@ -232,18 +227,15 @@ input[type="file"] {
 }
 
 .modal-content {
-  background: var(--card-light);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl);
   max-width: 90vw;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-light);
 }
 
 .dark-theme .modal-content {
-  background: var(--card-dark);
-  color: var(--text-dark);
+  border-color: var(--border-dark);
 }
 
 .modal-content.large {
@@ -290,8 +282,7 @@ input[type="file"] {
   box-shadow: none;
   font-size: 1.5rem;
   width: 100%;
-  min-height: auto;
-  line-height: normal;
+  text-decoration: none; /* remove underline */
 }
 
 .nav-item.active {
@@ -302,6 +293,74 @@ input[type="file"] {
 .nav-label {
   font-size: 0.7rem;
   margin-top: var(--space-xs);
+}
+
+/* ========== CALENDÁRIO ========== */
+.react-calendar {
+  width: 100%;
+  background: var(--card-light) !important;
+  border: 1px solid var(--border-light) !important;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+}
+
+.dark-theme .react-calendar {
+  background: var(--card-dark) !important;
+  border-color: var(--border-dark) !important;
+  color: var(--text-dark);
+}
+
+.react-calendar__navigation button {
+  color: var(--primary-dark);
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  padding: var(--space-xs);
+}
+
+.dark-theme .react-calendar__navigation button {
+  color: var(--text-dark);
+}
+
+.react-calendar__month-view__weekdays__weekday {
+  color: var(--primary-dark);
+  font-weight: bold;
+  text-decoration: none;
+  padding: var(--space-xs);
+}
+
+.dark-theme .react-calendar__month-view__weekdays__weekday {
+  color: var(--dark-accent);
+}
+
+.react-calendar__tile {
+  background: transparent;
+  color: var(--primary-dark);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs);
+}
+
+.dark-theme .react-calendar__tile {
+  color: var(--text-dark);
+}
+
+.react-calendar__tile--active {
+  background: var(--gradient-primary) !important;
+  color: white;
+}
+
+.dark-theme .react-calendar__tile--active {
+  background: var(--gradient-secondary) !important;
+}
+
+.react-calendar__tile--now {
+  background: var(--secondary-light);
+  border: 1px solid var(--secondary-dark);
+}
+
+.dark-theme .react-calendar__tile--now {
+  background: var(--dark-accent);
+  border-color: var(--secondary-light);
 }
 
 /* ========== RESPONSIVIDADE ========== */
@@ -354,24 +413,27 @@ input[type="file"] {
 .mb-2 { margin-bottom: var(--space-md); }
 .mb-3 { margin-bottom: var(--space-lg); }
 
-/* Wrapper para input com ícone */
-.search-wrapper {
-  position: relative;
-  display: inline-block;
-  width: 100%;
-  max-width: 20rem;
+/* ========== LINKS (sem sublinhado) ========== */
+a {
+  text-decoration: none;
+  color: inherit;
 }
 
-.search-wrapper input {
-  padding-left: 2.5rem;
-  width: 100%;
+a:hover {
+  text-decoration: none;
 }
 
-.search-wrapper svg {
-  position: absolute;
-  left: var(--space-sm);
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--primary-medium);
-  pointer-events: none;
+/* ========== NOVAS CORES PARA BORDAS E CONTAINERS ========== */
+.border-themed {
+  border-color: var(--border-light);
+}
+.dark-theme .border-themed {
+  border-color: var(--border-dark);
+}
+
+.container-bg-themed {
+  background-color: var(--container-bg-light);
+}
+.dark-theme .container-bg-themed {
+  background-color: var(--container-bg-dark);
 }
