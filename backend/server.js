@@ -1,3 +1,4 @@
+// backend/server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -19,7 +20,7 @@ dirs.forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// TiDB connection pool (MySQL compatible)
+// Configuração do pool de conexões para TiDB (MySQL compatível)
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT) || 4000,
@@ -37,7 +38,7 @@ const pool = mysql.createPool({
   } : undefined
 });
 
-// Test connection
+// Testar conexão
 async function testConnection() {
   try {
     const connection = await pool.getConnection();
@@ -49,7 +50,7 @@ async function testConnection() {
 }
 testConnection();
 
-// API Routes
+// Rotas da API
 app.use('/api', require('./routes/api')(pool));
 
 // Health check
