@@ -8,7 +8,7 @@
   --blue-medium-dark: #1E3653;
   --blue-medium: #305B7E;
 
-  /* Gradientes baseados nas novas cores */
+  /* Gradientes */
   --gradient-primary: linear-gradient(135deg, var(--blue-medium), var(--blue-medium-dark));
   --gradient-secondary: linear-gradient(135deg, var(--brown-medium), var(--brown-dark));
   --gradient-light: linear-gradient(135deg, var(--beige), #fff);
@@ -16,7 +16,7 @@
   /* Temas */
   --bg-light: var(--beige);
   --text-light: var(--brown-darker);
-  --card-light: #fff; /* ou um tom mais claro */
+  --card-light: #fff;
   --border-light: var(--brown-medium);
 
   --bg-dark: var(--dark-blue);
@@ -292,6 +292,12 @@ select:focus {
     padding: var(--space-xs);
   }
 
+  /* Diminuir o botão de tema no mobile */
+  .theme-toggle {
+    font-size: 1rem;
+    padding: 0.2rem;
+  }
+
   .nav-label {
     display: none;
   }
@@ -300,6 +306,16 @@ select:focus {
     margin-left: 0;
     margin-top: 3.75rem;
     padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .main-content > * {
+    width: 100%;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 
@@ -317,3 +333,10 @@ select:focus {
 .mb-1 { margin-bottom: var(--space-sm); }
 .mb-2 { margin-bottom: var(--space-md); }
 .mb-3 { margin-bottom: var(--space-lg); }
+
+/* Classe opcional para páginas que precisam de centralização */
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-lg);
+}
