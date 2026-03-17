@@ -1,47 +1,39 @@
 :root {
-  /* Paleta de Cores Base */
-  --primary-dark: #123554;
-  --primary-medium: #5D86AA;
-  --primary-light: #EBF5FF;
-  --secondary-dark: #806130;
-  --secondary-medium: #BFA478;
-  --secondary-light: #FFF7EA;
-  
-  /* Novas cores para temas */
-  --dark-bg: #021C33;
-  --dark-accent: #5D86AA;
-  --light-bg: #AA8C5D;
-  --light-accent: #553B12;
-  
-  /* Gradientes */
-  --gradient-primary: linear-gradient(135deg, var(--primary-medium), var(--primary-dark));
-  --gradient-secondary: linear-gradient(135deg, var(--secondary-medium), var(--secondary-dark));
-  --gradient-light: linear-gradient(135deg, var(--secondary-light), var(--primary-light));
-  
+  /* NOVA PALETA DE CORES */
+  --beige: #F0D4BF;
+  --brown-medium: #864C2C;
+  --brown-dark: #6E3115;
+  --brown-darker: #4F210D;
+  --dark-blue: #071524;
+  --blue-medium-dark: #1E3653;
+  --blue-medium: #305B7E;
+
+  /* Gradientes baseados nas novas cores */
+  --gradient-primary: linear-gradient(135deg, var(--blue-medium), var(--blue-medium-dark));
+  --gradient-secondary: linear-gradient(135deg, var(--brown-medium), var(--brown-dark));
+  --gradient-light: linear-gradient(135deg, var(--beige), #fff);
+
   /* Temas */
-  --bg-light: var(--secondary-light);
-  --text-light: var(--primary-dark);
-  --bg-dark: var(--dark-bg);
-  --text-dark: var(--secondary-light);
-  --card-light: var(--primary-light);
-  --card-dark: var(--dark-accent);
-  
-  /* Novas variáveis para bordas e containers */
-  --border-light: var(--light-accent);
-  --border-dark: var(--dark-accent);
-  --container-bg-light: var(--light-bg);
-  --container-bg-dark: var(--dark-bg);
-  
+  --bg-light: var(--beige);
+  --text-light: var(--brown-darker);
+  --card-light: #fff; /* ou um tom mais claro */
+  --border-light: var(--brown-medium);
+
+  --bg-dark: var(--dark-blue);
+  --text-dark: var(--beige);
+  --card-dark: var(--blue-medium-dark);
+  --border-dark: var(--blue-medium);
+
   /* Transição */
-  --transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  
+  --transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+
   /* Espaçamentos */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 1rem;
   --space-lg: 1.5rem;
   --space-xl: 2rem;
-  
+
   /* Bordas */
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
@@ -77,8 +69,8 @@ body.dark-theme {
 }
 
 /* ========== BOTÕES ========== */
-button, 
-.btn-primary, 
+button,
+.btn-primary,
 .btn-secondary,
 .btn-danger,
 .btn-export,
@@ -95,7 +87,6 @@ button,
   background: var(--gradient-primary);
   color: white;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
-  border: 1px solid transparent;
 }
 
 button:hover,
@@ -116,19 +107,9 @@ button:hover,
 .btn-download,
 .btn-preview {
   background: var(--gradient-light);
-  color: var(--primary-dark);
+  color: var(--brown-darker);
   padding: var(--space-xs) var(--space-md);
   font-size: 0.875rem;
-}
-
-.theme-toggle {
-  background: transparent;
-  box-shadow: none;
-  border: 1px solid currentColor;
-}
-.theme-toggle:hover {
-  box-shadow: none;
-  transform: none;
 }
 
 button:disabled {
@@ -143,10 +124,10 @@ textarea,
 select {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
-  border: 0.125rem solid var(--primary-medium);
+  border: 0.0625rem solid var(--border-light);
   border-radius: var(--radius-md);
   background-color: rgba(255, 255, 255, 0.9);
-  color: var(--primary-dark);
+  color: var(--text-light);
   font-size: 1rem;
   transition: var(--transition);
 }
@@ -154,44 +135,33 @@ select {
 .dark-theme input,
 .dark-theme textarea,
 .dark-theme select {
-  background-color: var(--dark-bg);
+  background-color: var(--card-dark);
   color: var(--text-dark);
-  border-color: var(--dark-accent);
+  border-color: var(--border-dark);
 }
 
 input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: var(--secondary-dark);
-  box-shadow: 0 0 0 0.1875rem rgba(128, 97, 48, 0.25);
+  border-color: var(--brown-dark);
+  box-shadow: 0 0 0 0.1875rem rgba(110, 49, 21, 0.25);
 }
 
-/* Espaçamento entre inputs */
-input + input,
-input + textarea,
-textarea + input,
-textarea + textarea,
-select + select,
-.input-group {
-  margin-top: var(--space-md);
-}
-
-/* ========== CARDS E CONTAINERS ========== */
+/* ========== CARDS ========== */
 .card,
 .notebook-card,
 .book-card,
 .pdf-card,
 .podcast-card,
 .pagina-card,
-.lembrete-item,
-.modal-content {
+.lembrete-item {
   background: var(--card-light);
   border-radius: var(--radius-md);
   padding: var(--space-lg);
   box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
   transition: var(--transition);
-  border: 1px solid var(--border-light);
+  border: 0.0625rem solid var(--border-light);
 }
 
 .dark-theme .card,
@@ -200,8 +170,7 @@ select + select,
 .dark-theme .pdf-card,
 .dark-theme .podcast-card,
 .dark-theme .pagina-card,
-.dark-theme .lembrete-item,
-.dark-theme .modal-content {
+.dark-theme .lembrete-item {
   background: var(--card-dark);
   color: var(--text-dark);
   border-color: var(--border-dark);
@@ -227,14 +196,19 @@ select + select,
 }
 
 .modal-content {
+  background: var(--card-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
   max-width: 90vw;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--border-light);
+  border: 0.0625rem solid var(--border-light);
 }
 
 .dark-theme .modal-content {
+  background: var(--card-dark);
+  color: var(--text-dark);
   border-color: var(--border-dark);
 }
 
@@ -282,7 +256,6 @@ select + select,
   box-shadow: none;
   font-size: 1.5rem;
   width: 100%;
-  text-decoration: none; /* remove underline */
 }
 
 .nav-item.active {
@@ -295,74 +268,6 @@ select + select,
   margin-top: var(--space-xs);
 }
 
-/* ========== CALENDÁRIO ========== */
-.react-calendar {
-  width: 100%;
-  background: var(--card-light) !important;
-  border: 1px solid var(--border-light) !important;
-  border-radius: var(--radius-md);
-  font-family: inherit;
-}
-
-.dark-theme .react-calendar {
-  background: var(--card-dark) !important;
-  border-color: var(--border-dark) !important;
-  color: var(--text-dark);
-}
-
-.react-calendar__navigation button {
-  color: var(--primary-dark);
-  background: transparent;
-  border: none;
-  font-size: 1rem;
-  padding: var(--space-xs);
-}
-
-.dark-theme .react-calendar__navigation button {
-  color: var(--text-dark);
-}
-
-.react-calendar__month-view__weekdays__weekday {
-  color: var(--primary-dark);
-  font-weight: bold;
-  text-decoration: none;
-  padding: var(--space-xs);
-}
-
-.dark-theme .react-calendar__month-view__weekdays__weekday {
-  color: var(--dark-accent);
-}
-
-.react-calendar__tile {
-  background: transparent;
-  color: var(--primary-dark);
-  border-radius: var(--radius-sm);
-  padding: var(--space-xs);
-}
-
-.dark-theme .react-calendar__tile {
-  color: var(--text-dark);
-}
-
-.react-calendar__tile--active {
-  background: var(--gradient-primary) !important;
-  color: white;
-}
-
-.dark-theme .react-calendar__tile--active {
-  background: var(--gradient-secondary) !important;
-}
-
-.react-calendar__tile--now {
-  background: var(--secondary-light);
-  border: 1px solid var(--secondary-dark);
-}
-
-.dark-theme .react-calendar__tile--now {
-  background: var(--dark-accent);
-  border-color: var(--secondary-light);
-}
-
 /* ========== RESPONSIVIDADE ========== */
 @media (max-width: 768px) {
   .navbar {
@@ -373,24 +278,24 @@ select + select,
     width: 100vw;
     padding: 0 var(--space-md);
   }
-  
+
   .nav-links {
     flex-direction: row;
     width: 100%;
     justify-content: space-around;
     gap: 0;
   }
-  
+
   .nav-item,
   .theme-toggle {
     font-size: 1.2rem;
     padding: var(--space-xs);
   }
-  
+
   .nav-label {
     display: none;
   }
-  
+
   .main-content {
     margin-left: 0;
     margin-top: 3.75rem;
@@ -412,61 +317,3 @@ select + select,
 .mb-1 { margin-bottom: var(--space-sm); }
 .mb-2 { margin-bottom: var(--space-md); }
 .mb-3 { margin-bottom: var(--space-lg); }
-
-/* ========== LINKS (sem sublinhado) ========== */
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
-a:hover {
-  text-decoration: none;
-}
-
-/* ========== NOVAS CORES PARA BORDAS E CONTAINERS ========== */
-.border-themed {
-  border-color: var(--border-light);
-}
-.dark-theme .border-themed {
-  border-color: var(--border-dark);
-}
-
-.container-bg-themed {
-  background-color: var(--container-bg-light);
-}
-.dark-theme .container-bg-themed {
-  background-color: var(--container-bg-dark);
-}
-
-.drive-button {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: var(--space-xs);
-  border-radius: var(--radius-sm);
-  transition: var(--transition);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.drive-button:hover {
-  background: rgba(0, 0, 0, 0.05);
-  transform: scale(1.1);
-}
-
-.dark-theme .drive-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.drive-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.drive-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  object-fit: contain;
-}
