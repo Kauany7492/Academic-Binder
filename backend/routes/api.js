@@ -869,3 +869,91 @@ module.exports = (pool) => {
 
   return router;
 };
+
+// ========== EXPORTAR PDF PARA O GOOGLE DRIVE ==========
+router.post('/drive/export-pdf', ensureGoogleAuth, async (req, res) => {
+  const { pdf_id } = req.body;
+  try {
+    // 1. Buscar o PDF no banco de dados
+    const [pdf] = await pool.query('SELECT * FROM pdfs WHERE id = ?', [pdf_id]);
+    if (pdf.length === 0) {
+      return res.status(404).json({ error: 'PDF não encontrado' });
+    }
+    const pdfData = pdf[0];
+
+    // 2. Localizar o arquivo no servidor
+    const filePath = path.join(__dirname, '..', pdfData.arquivo_path);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Arquivo físico não encontrado no servidor' });
+    }
+
+    // 3. Obter o nome do caderno associado (se houver)
+    let folderId = null;
+    if (pdfData.caderno_id) {
+      // Verificar se já existe uma pasta para o caderno no Drive
+      const [folderRef] = await pool.query(
+        'SELECT folder_id FROM storage_references WHERE caderno_id = ? AND pagina_id IS NULL',
+        [pdfData.caderno_id]
+      );
+
+      if (folderRef.length > 0) {
+        folderId = folderRef[0].folder_id;
+      } else {
+        // Se não existir, criar a pasta do caderno
+        const [caderno] = await pool.query('SELECT titulo FROM cadernos WHERE id = ?', [pdfData.caderno_id]);
+        const cadNome = caderno[0].titulo;
+
+        const drive = google.drive({ version: 'v3', auth: req.googleAuth });
+        const folderMetadata = {
+          name: cadNome,
+          mimeType: 'application/vnd.google-apps.folder'
+        };
+        const folder = await drive.files.create({
+          resource: folderMetadata,
+          fields: 'id'
+        });
+        folderId = folder.data.id;
+
+        // Salvar referência da pasta
+        await pool.query(
+          'INSERT INTO storage_references (caderno_id, folder_id) VALUES (?, ?)',
+          [pdfData.caderno_id, folderId]
+        );
+      }
+    }
+
+    // 4. Fazer upload do arquivo para o Drive
+    const drive = google.drive({ version: 'v3', auth: req.googleAuth });
+    const fileMetadata = {
+      name: pdfData.titulo + '.pdf',
+      parents: folderId ? [folderId] : [] // se não houver pasta, coloca na raiz
+    };
+    const media = {
+      mimeType: 'application/pdf',
+      body: fs.createReadStream(filePath)
+    };
+
+    const uploadedFile = await drive.files.create({
+      resource: fileMetadata,
+      media: media,
+      fields: 'id, webViewLink'
+    });
+
+    // 5. Salvar referência no banco (opcional)
+    await pool.query(
+      `INSERT INTO storage_references (caderno_id, pagina_id, file_id, link, provider)
+       VALUES (?, ?, ?, ?, 'googledrive')`,
+      [pdfData.caderno_id, null, uploadedFile.data.id, uploadedFile.data.webViewLink]
+    );
+
+    res.json({
+      success: true,
+      fileId: uploadedFile.data.id,
+      link: uploadedFile.data.webViewLink
+    });
+
+  } catch (error) {
+    console.error('Erro ao exportar PDF para o Drive:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
