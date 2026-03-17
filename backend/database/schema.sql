@@ -3,7 +3,7 @@ CREATE DATABASE IF NOT EXISTS academic_binder;
 USE academic_binder;
 
 -- ============================================
--- TABELAS PRINCIPAIS
+-- TABELAS PRINCIPAIS (SEM DEPENDÊNCIAS)
 -- ============================================
 
 -- Tabela de cadernos
@@ -16,13 +16,17 @@ CREATE TABLE IF NOT EXISTS cadernos (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ============================================
+-- TABELAS QUE DEPENDEM DE cadernos
+-- ============================================
+
 -- Tabela de páginas
 CREATE TABLE IF NOT EXISTS paginas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     caderno_id INT,
     titulo VARCHAR(200) NOT NULL,
     conteudo TEXT,
-    metodo_anotacao VARCHAR(20) CHECK (metodo_anotacao IN ('cornell', 'esboço', 'livre')),
+    metodo_anotacao VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (caderno_id) REFERENCES cadernos(id) ON DELETE CASCADE
 );
@@ -49,6 +53,23 @@ CREATE TABLE IF NOT EXISTS pdfs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (caderno_id) REFERENCES cadernos(id) ON DELETE CASCADE
 );
+
+-- Tabela de podcasts gerados por IA
+CREATE TABLE IF NOT EXISTS podcasts_gerados (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    caderno_id INT,
+    titulo VARCHAR(200) NOT NULL,
+    descricao TEXT,
+    roteiro TEXT NOT NULL,
+    duracao_estimada INT,
+    url_audio VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (caderno_id) REFERENCES cadernos(id) ON DELETE CASCADE
+);
+
+-- ============================================
+-- TABELAS QUE DEPENDEM DE OUTRAS (2º NÍVEL)
+-- ============================================
 
 -- Tabela de destaques (grifos)
 CREATE TABLE IF NOT EXISTS destaques (
@@ -85,19 +106,6 @@ CREATE TABLE IF NOT EXISTS links (
     FOREIGN KEY (pagina_id) REFERENCES paginas(id) ON DELETE CASCADE
 );
 
--- Tabela de podcasts gerados por IA
-CREATE TABLE IF NOT EXISTS podcasts_gerados (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    caderno_id INT,
-    titulo VARCHAR(200) NOT NULL,
-    descricao TEXT,
-    roteiro TEXT NOT NULL,
-    duracao_estimada INT,
-    url_audio VARCHAR(500),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (caderno_id) REFERENCES cadernos(id) ON DELETE CASCADE
-);
-
 -- Tabela de episódios de podcast gerado
 CREATE TABLE IF NOT EXISTS episodios_podcast (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -116,6 +124,7 @@ CREATE TABLE IF NOT EXISTS podcast_fontes (
     podcast_id INT,
     pdf_id INT,
     tipo_fonte VARCHAR(50) DEFAULT 'pdf',
+    PRIMARY KEY (podcast_id, pdf_id),
     FOREIGN KEY (podcast_id) REFERENCES podcasts_gerados(id) ON DELETE CASCADE,
     FOREIGN KEY (pdf_id) REFERENCES pdfs(id) ON DELETE CASCADE
 );
@@ -129,9 +138,9 @@ CREATE TABLE IF NOT EXISTS books (
     id VARCHAR(36) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255),
-    total_pages INT NOT NULL CHECK (total_pages > 0),
-    pages_read INT NOT NULL DEFAULT 0 CHECK (pages_read >= 0 AND pages_read <= total_pages),
-    status VARCHAR(20) NOT NULL CHECK (status IN ('lendo', 'lido', 'quero ler')) DEFAULT 'quero ler',
+    total_pages INT NOT NULL,
+    pages_read INT NOT NULL DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'quero ler',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -148,37 +157,28 @@ CREATE TABLE IF NOT EXISTS reading_history (
 -- TABELAS PARA ARMAZENAMENTO EM DRIVE
 -- ============================================
 
--- Tabela de usuários (para integração com serviços de storage)
-CREATE TABLE IF NOT EXISTS usuarios_storage (
+-- Tabela de usuários (para integração com Google Drive)
+CREATE TABLE IF NOT EXISTS usuarios_google (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    provider VARCHAR(50) NOT NULL, -- 'ppdrive', 'dropbox', 'googledrive'
-    user_id VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
+    google_id VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) NOT NULL,
     nome VARCHAR(255),
     access_token TEXT,
     refresh_token TEXT,
     token_expiry TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_provider_user (provider, user_id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela para armazenar referências de pastas/arquivos
+-- Tabela para armazenar referências de pastas/arquivos do Drive
 CREATE TABLE IF NOT EXISTS storage_references (
     id INT AUTO_INCREMENT PRIMARY KEY,
     caderno_id INT,
     pagina_id INT,
-    provider VARCHAR(50) NOT NULL DEFAULT 'ppdrive',
-    bucket_name VARCHAR(255),
+    provider VARCHAR(50) NOT NULL DEFAULT 'googledrive',
     folder_id VARCHAR(255),
     file_id VARCHAR(255),
-    file_path VARCHAR(500),
     link VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (caderno_id) REFERENCES cadernos(id) ON DELETE CASCADE,
     FOREIGN KEY (pagina_id) REFERENCES paginas(id) ON DELETE CASCADE
 );
-
--- Dados iniciais de exemplo
-INSERT INTO cadernos (titulo, descricao, cor) VALUES
-('Matemática Discreta', 'Fundamentos de lógica e combinatória', '#e74c3c'),
-('Programação Web', 'Desenvolvimento com Node.js e React', '#2ecc71');
