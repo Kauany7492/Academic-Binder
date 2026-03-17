@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { FaMicrophone, FaUpload, FaLink, FaTrash, FaGoogleDrive, FaHighlighter } from 'react-icons/fa';
+import { FaMicrophone, FaUpload, FaLink, FaTrash, FaGoogleDrive } from 'react-icons/fa';
 import AudioRecorder from '../components/AudioRecorder';
 import DownloadButton from '../components/DownloadButton';
 
@@ -186,7 +186,7 @@ const NotebookDetail = () => {
   };
 
   return (
-    <div className="notebook-detail-container">
+    <div className="page-container">
       {notebook && (
         <>
           <div className="notebook-header">
