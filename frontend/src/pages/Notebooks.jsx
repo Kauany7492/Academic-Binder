@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { FaEdit, FaTrash, FaPlus, FaSearch } from 'react-icons/fa';
-import DriveButton from '../components/DriveButton';
+import AccessLink from '../components/AccessLink'; // novo componente
 import './Notebooks.css';
 
 const Notebooks = () => {
@@ -10,9 +10,7 @@ const Notebooks = () => {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ titulo: '', descricao: '', cor: '#864C2C' });
-  const [driveToken, setDriveToken] = useState(localStorage.getItem('driveToken'));
-  const [exporting, setExporting] = useState(false);
+  const [form, setForm] = useState({ titulo: '', descricao: '', cor: '#806130' });
 
   useEffect(() => {
     fetchNotebooks();
@@ -38,7 +36,7 @@ const Notebooks = () => {
       fetchNotebooks();
       setShowModal(false);
       setEditing(null);
-      setForm({ titulo: '', descricao: '', cor: '#864C2C' });
+      setForm({ titulo: '', descricao: '', cor: '#806130' });
     } catch (error) {
       console.error('Erro ao salvar caderno:', error);
     }
@@ -52,26 +50,6 @@ const Notebooks = () => {
       } catch (error) {
         console.error('Erro ao deletar caderno:', error);
       }
-    }
-  };
-
-  const handleDriveExport = async (notebook) => {
-    if (!driveToken) {
-      // Redirecionar para login do Google
-      window.location.href = `${process.env.REACT_APP_API_URL}/auth/google?state=notebook-${notebook.id}`;
-      return;
-    }
-    setExporting(true);
-    try {
-      await api.post('/drive/export-notebook', { notebook_id: notebook.id }, {
-        headers: { Authorization: `Bearer ${driveToken}` }
-      });
-      alert('Caderno exportado para o Drive com sucesso!');
-    } catch (error) {
-      console.error('Erro ao exportar caderno:', error);
-      alert('Falha ao enviar para o Drive.');
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -109,9 +87,7 @@ const Notebooks = () => {
             <h3>{notebook.titulo}</h3>
             <p>{notebook.descricao}</p>
             <div className="card-actions">
-              <Link to={`/notebooks/${notebook.id}`} className="btn-view">
-                Acessar
-              </Link>
+              <AccessLink to={`/notebooks/${notebook.id}`} />
               <button
                 onClick={() => {
                   setEditing(notebook);
@@ -119,13 +95,14 @@ const Notebooks = () => {
                   setShowModal(true);
                 }}
                 className="icon-btn"
+                title="Editar"
               >
                 <FaEdit />
               </button>
-              <DriveButton onClick={() => handleDriveExport(notebook)} disabled={exporting} />
               <button
                 onClick={() => handleDelete(notebook.id)}
                 className="icon-btn delete"
+                title="Excluir"
               >
                 <FaTrash />
               </button>
