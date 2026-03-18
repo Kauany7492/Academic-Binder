@@ -2,56 +2,42 @@
   padding: var(--space-lg);
 }
 
+.pdfs-container h1 {
+  color: var(--primary-dark);
+  margin-bottom: var(--space-xl);
+}
+
+.dark-theme .pdfs-container h1 {
+  color: var(--text-dark);
+}
+
 .upload-form {
+  margin-bottom: var(--space-xl);
+}
+
+.form-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-md);
-  align-items: center;
-  margin-bottom: var(--space-xl);
-  background: var(--card-light);
-  padding: var(--space-lg);
-  border-radius: var(--radius-md);
+  align-items: flex-end;
 }
 
-.dark-theme .upload-form {
-  background: var(--card-dark);
-}
-
-.upload-form input[type="text"],
-.upload-form select,
-.upload-form input[type="file"],
-.upload-form button {
+.form-row input,
+.form-row select,
+.form-row button {
   flex: 1 1 auto;
-  min-width: 12rem;
-  margin-bottom: 0; /* remove margem inferior pois já temos gap */
+  min-width: 200px;
 }
 
-.upload-form input[type="file"] {
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  cursor: pointer;
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-md);
-  display: inline-block;
-  text-align: center;
-  transition: var(--transition);
-  box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.1);
-}
-
-.upload-form input[type="file"]:hover {
-  transform: translateY(-0.125rem);
-  box-shadow: 0 0.375rem 0.5rem rgba(0,0,0,0.15);
-}
-
-.upload-form button {
-  margin: 0;
+.form-row button {
+  white-space: nowrap;
 }
 
 .pdfs-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-lg);
+  gap: var(--space-xl);
+  margin-top: var(--space-lg);
 }
 
 .pdf-card {
@@ -60,10 +46,17 @@
   padding: var(--space-lg);
   box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
   transition: var(--transition);
+  border: 0.0625rem solid var(--border-light);
 }
 
 .dark-theme .pdf-card {
   background: var(--card-dark);
+  border-color: var(--border-dark);
+}
+
+.pdf-card:hover {
+  transform: translateY(-0.25rem);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
 .pdf-card h3 {
@@ -76,10 +69,10 @@
 }
 
 .pdf-card .resumo {
-  color: var(--primary-dark);
-  font-style: italic;
-  margin: var(--space-sm) 0;
+  color: var(--primary-medium);
   font-size: 0.9rem;
+  margin-bottom: var(--space-md);
+  line-height: 1.5;
 }
 
 .dark-theme .pdf-card .resumo {
@@ -95,75 +88,36 @@
 
 .actions button,
 .actions a {
-  padding: var(--space-xs) var(--space-md);
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
-  background: var(--gradient-primary);
-  color: white;
+  text-decoration: none;
   transition: var(--transition);
 }
 
-.actions button.delete {
-  background: linear-gradient(135deg, #dc3545, #b02a37);
-}
-
-.actions button:hover,
-.actions a:hover {
-  transform: translateY(-0.125rem);
-  box-shadow: 0 0.375rem 0.5rem rgba(0,0,0,0.15);
-}
-
-.pdf-preview-modal .modal-content {
-  width: 90vw;
-  max-width: 1200px;
-  height: 90vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.pdf-container {
-  flex: 1;
-  overflow-y: auto;
-  background: #f5f5f5;
-  padding: var(--space-sm);
-  border-radius: var(--radius-sm);
-}
-
-.dark-theme .pdf-container {
-  background: var(--primary-dark);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-md);
-}
-
-.modal-header h2 {
-  color: var(--primary-dark);
-}
-
-.dark-theme .modal-header h2 {
-  color: var(--text-dark);
-}
-
-.close-btn {
-  background: transparent;
+.btn-preview {
+  background: var(--gradient-light);
+  color: var(--brown-darker);
   border: none;
-  font-size: 1.5rem;
   cursor: pointer;
-  color: var(--primary-dark);
-  min-height: auto;
-  padding: var(--space-xs);
 }
 
-.dark-theme .close-btn {
-  color: var(--text-dark);
+.btn-preview:hover {
+  transform: translateY(-0.125rem);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+.delete {
+  background: linear-gradient(135deg, #dc3545, #b02a37);
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.delete:hover {
+  transform: translateY(-0.125rem);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
 }
