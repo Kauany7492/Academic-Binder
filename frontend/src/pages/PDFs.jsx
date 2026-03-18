@@ -17,6 +17,7 @@ const PDFs = () => {
   const [cadernos, setCadernos] = useState([]);
   const [previewPdf, setPreviewPdf] = useState(null);
   const [numPages, setNumPages] = useState(null);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     fetchPDFs();
@@ -51,14 +52,21 @@ const PDFs = () => {
 
     try {
       setUploading(true);
+      setProgress(30);
       const res = await api.post('/pdfs', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setProgress(percent);
+        }
       });
+      setProgress(100);
       await api.post(`/pdfs/${res.data.id}/resumir`);
       fetchPDFs();
       setSelectedFile(null);
       setTitulo('');
       setCadernoId('');
+      setTimeout(() => setProgress(0), 1000);
     } catch (error) {
       console.error(error);
     } finally {
@@ -90,30 +98,40 @@ const PDFs = () => {
   };
 
   return (
-    <div className="page-container">
+    <div className="pdfs-container page-container">
       <h1>PDFs</h1>
       <form onSubmit={handleUpload} className="upload-form">
-        <input
-          type="text"
-          placeholder="Título do PDF"
-          value={titulo}
-          onChange={(e) => setTitulo(e.target.value)}
-          required
-        />
-        <select value={cadernoId} onChange={(e) => setCadernoId(e.target.value)} required>
-          <option value="">Selecione um caderno</option>
-          {cadernos.map(c => <option key={c.id} value={c.id}>{c.titulo}</option>)}
-        </select>
-        <input
-          type="file"
-          accept=".pdf"
-          onChange={(e) => setSelectedFile(e.target.files[0])}
-          required
-        />
-        <button type="submit" disabled={uploading}>
-          <FaUpload /> {uploading ? 'Enviando...' : 'Upload PDF'}
-        </button>
+        <div className="form-row">
+          <input
+            type="text"
+            placeholder="Título do PDF"
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            required
+          />
+          <select value={cadernoId} onChange={(e) => setCadernoId(e.target.value)} required>
+            <option value="">Selecione um caderno</option>
+            {cadernos.map(c => <option key={c.id} value={c.id}>{c.titulo}</option>)}
+          </select>
+          <input
+            type="file"
+            accept=".pdf"
+            onChange={(e) => setSelectedFile(e.target.files[0])}
+            required
+          />
+          <button type="submit" disabled={uploading} className="btn-primary">
+            <FaUpload /> {uploading ? 'Enviando...' : 'Upload PDF'}
+          </button>
+        </div>
+        {uploading && (
+          <div className="progress-bar-container">
+            <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
+          </div>
+        )}
       </form>
+      <div className="supported-formats">
+        Formatos suportados: PDF
+      </div>
 
       <div className="pdfs-grid">
         {pdfs.map(pdf => (
