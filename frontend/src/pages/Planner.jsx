@@ -80,13 +80,15 @@ const Planner = () => {
     }
   };
 
-  // Obtém o mês e ano atual para exibir no cabeçalho
   const monthNames = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
   const currentMonth = monthNames[date.getMonth()];
   const currentYear = date.getFullYear();
+
+  // Dias da semana em português
+  const weekDays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 
   return (
     <div className="planner-container">
@@ -96,33 +98,24 @@ const Planner = () => {
       </button>
 
       <div className="planner-grid">
-        {/* Seção do calendário estilo grid */}
         <div className="calendar-section">
           <div className="calendar-header">
             <span className="month-year">{currentMonth} {currentYear}</span>
             <div className="weekdays">
-              <span>LUN</span>
-              <span>MAR</span>
-              <span>MIE</span>
-              <span>JUE</span>
-              <span>VIE</span>
-              <span>SAB</span>
-              <span>DOM</span>
+              {weekDays.map(day => (
+                <span key={day}>{day}</span>
+              ))}
             </div>
           </div>
           <Calendar
             onChange={setDate}
             value={date}
-            calendarType="US" // Para começar no domingo? Mas queremos segunda? Vamos ajustar com CSS
+            calendarType="US" // Para começar no domingo, mas com cabeçalho customizado
             showNavigation={false}
-            formatShortWeekday={(locale, date) => {
-              // Não usaremos, pois o cabeçalho é customizado
-              return '';
-            }}
+            formatShortWeekday={() => ''} // esconde os dias padrão
           />
         </div>
 
-        {/* Seção de DATES IMPORTANTES (antigo HABIT TRACKER) */}
         <div className="important-dates-section">
           <h2>DATES IMPORTANTES</h2>
           <div className="dates-list">
@@ -140,7 +133,6 @@ const Planner = () => {
                 </div>
               ))
             ) : (
-              // Mostra linhas em branco para simular a imagem
               Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} className="date-item empty">
                   <span className="date-number">{i + 1}.</span>
@@ -153,7 +145,6 @@ const Planner = () => {
         </div>
       </div>
 
-      {/* Modal para novo lembrete (igual ao anterior) */}
       {showLembreteModal && (
         <div className="modal">
           <div className="modal-content">
