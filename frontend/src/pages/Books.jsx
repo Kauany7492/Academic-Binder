@@ -132,8 +132,12 @@ const Books = () => {
               </span>
             </div>
             <div className="book-actions">
-              <button onClick={() => openModal(book)}><FaEdit /></button>
-              <button onClick={() => handleDelete(book.id)} className="delete"><FaTrash /></button>
+              <button onClick={() => openModal(book)} className="icon-btn" title="Editar">
+                <FaEdit />
+              </button>
+              <button onClick={() => handleDelete(book.id)} className="icon-btn delete" title="Excluir">
+                <FaTrash />
+              </button>
             </div>
           </div>
         ))}
@@ -193,9 +197,9 @@ const Books = () => {
                   <option value="lido">Lido</option>
                 </select>
               </label>
-              <div className="modal-actions">
-                <button type="submit">Salvar</button>
-                <button type="button" onClick={closeModal}>Cancelar</button>
+              <div className="modal-actions" style={{ marginTop: 'var(--space-xl)' }}> {/* espaçamento extra */}
+                <button type="submit" className="btn-primary">Salvar</button>
+                <button type="button" onClick={closeModal} className="btn-secondary">Cancelar</button>
               </div>
             </form>
           </div>
