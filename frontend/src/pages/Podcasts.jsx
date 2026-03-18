@@ -166,6 +166,9 @@ const Podcasts = () => {
           <FaRobot /> Gerar Podcast com IA
         </button>
       </div>
+      <div className="supported-formats">
+        Formatos suportados: PDF, DOCX, TXT, imagens (JPG, PNG)
+      </div>
 
       {showGenerator && (
         <div className="modal">
@@ -198,7 +201,6 @@ const Podcasts = () => {
         </div>
       )}
 
-      {/* Podcasts Gerados por IA */}
       <div className="podcasts-section">
         <h2><FaRobot /> Podcasts Gerados por IA</h2>
         <div className="podcasts-grid">
@@ -244,7 +246,6 @@ const Podcasts = () => {
         </div>
       )}
 
-      {/* Podcasts Enviados */}
       <div className="podcasts-section">
         <h2><FaUpload /> Podcasts Enviados</h2>
         <div className="podcasts-list">
