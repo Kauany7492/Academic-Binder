@@ -11,10 +11,19 @@
   gap: var(--space-md);
 }
 
+.books-header h1 {
+  color: var(--primary-dark);
+  font-size: 2rem;
+}
+
+.dark-theme .books-header h1 {
+  color: var(--text-dark);
+}
+
 .books-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-lg);
+  gap: var(--space-xl);
 }
 
 .book-card {
@@ -108,21 +117,34 @@
   margin-top: var(--space-md);
 }
 
-.book-actions button {
+.icon-btn {
   background: transparent;
   border: none;
   color: var(--primary-dark);
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
 }
 
-.dark .book-actions button {
+.dark .icon-btn {
   color: var(--text-dark);
 }
 
-.book-actions button.delete {
+.icon-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  transform: scale(1.1);
+}
+
+.icon-btn.delete:hover {
   color: #dc3545;
+  background: rgba(220, 53, 69, 0.1);
 }
 
 .loading, .error {
