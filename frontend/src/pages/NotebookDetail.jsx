@@ -20,6 +20,7 @@ const NotebookDetail = () => {
   const [linkUniversidade, setLinkUniversidade] = useState('');
   const [editingLink, setEditingLink] = useState(false);
   const [uploadingNotes, setUploadingNotes] = useState(false);
+  const [progress, setProgress] = useState(0); // barra de progresso
   const [pdfs, setPdfs] = useState([]);
   const [podcasts, setPodcasts] = useState([]);
   const [driveToken, setDriveToken] = useState(localStorage.getItem('driveToken'));
@@ -125,9 +126,16 @@ const NotebookDetail = () => {
     formData.append('titulo', `Notas de ${file.name}`);
     try {
       setUploadingNotes(true);
+      setProgress(30); // simulação de progresso
       const res = await api.post('/gerar-anotacoes', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setProgress(percent);
+        }
       });
+      setProgress(100);
+      setTimeout(() => setProgress(0), 1000);
       fetchPaginas();
     } catch (error) {
       console.error('Erro ao gerar anotações:', error);
@@ -186,7 +194,7 @@ const NotebookDetail = () => {
   };
 
   return (
-    <div className="page-container">
+    <div className="notebook-detail-container page-container">
       {notebook && (
         <>
           <div className="notebook-header">
@@ -217,7 +225,7 @@ const NotebookDetail = () => {
                 </div>
               )}
             </div>
-            <div className="action-buttons">
+            <div className="action-buttons-row">
               <button onClick={() => setShowRecorder(true)} className="btn-primary">
                 <FaMicrophone /> Nova Nota por Áudio
               </button>
@@ -225,6 +233,14 @@ const NotebookDetail = () => {
                 <FaUpload /> Gerar Notas de Arquivo
                 <input type="file" onChange={handleFileUploadForNotes} style={{ display: 'none' }} />
               </label>
+            </div>
+            {uploadingNotes && (
+              <div className="progress-bar-container">
+                <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
+              </div>
+            )}
+            <div className="supported-formats">
+              Formatos suportados: PDF, DOCX, TXT, imagens (JPG, PNG), áudio (MP3, WAV), vídeo (MP4)
             </div>
           </div>
 
