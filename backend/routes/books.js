@@ -32,7 +32,7 @@ module.exports = (pool) => {
   });
 
   router.post('/books', async (req, res) => {
-    const { title, author, total_pages, status = 'quero ler' } = req.body;
+    const { title, author, total_pages, status = 'quero ler', start_date, end_date } = req.body;
     if (!title || !total_pages) {
       return res.status(400).json({ error: 'Título e total de páginas são obrigatórios' });
     }
@@ -42,8 +42,8 @@ module.exports = (pool) => {
     const id = uuidv4();
     try {
       await pool.query(
-        'INSERT INTO books (id, title, author, total_pages, pages_read, status) VALUES (?, ?, ?, ?, ?, ?)',
-        [id, title, author, total_pages, 0, status]
+        'INSERT INTO books (id, title, author, total_pages, pages_read, status, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [id, title, author, total_pages, 0, status, start_date || null, end_date || null]
       );
       const [newRecord] = await pool.query('SELECT * FROM books WHERE id = ?', [id]);
       res.status(201).json(newRecord[0]);
@@ -53,7 +53,7 @@ module.exports = (pool) => {
   });
 
   router.put('/books/:id', async (req, res) => {
-    const { title, author, total_pages, pages_read, status } = req.body;
+    const { title, author, total_pages, pages_read, status, start_date, end_date } = req.body;
     try {
       const [current] = await pool.query('SELECT * FROM books WHERE id = ?', [req.params.id]);
       if (current.length === 0) return res.status(404).json({ error: 'Livro não encontrado' });
@@ -70,8 +70,17 @@ module.exports = (pool) => {
 
       try {
         await connection.query(
-          'UPDATE books SET title = ?, author = ?, total_pages = ?, pages_read = ?, status = ? WHERE id = ?',
-          [title || currentBook.title, author || currentBook.author, updatedTotal, updatedPagesRead, status || currentBook.status, req.params.id]
+          'UPDATE books SET title = ?, author = ?, total_pages = ?, pages_read = ?, status = ?, start_date = ?, end_date = ? WHERE id = ?',
+          [
+            title || currentBook.title,
+            author || currentBook.author,
+            updatedTotal,
+            updatedPagesRead,
+            status || currentBook.status,
+            start_date !== undefined ? start_date : currentBook.start_date,
+            end_date !== undefined ? end_date : currentBook.end_date,
+            req.params.id
+          ]
         );
 
         if (pages_read !== undefined && pages_read !== currentBook.pages_read) {

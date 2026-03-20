@@ -15,7 +15,9 @@ const Books = () => {
     author: '',
     total_pages: '',
     pages_read: '',
-    status: 'quero ler'
+    status: 'quero ler',
+    start_date: '',
+    end_date: ''
   });
   const { isDark } = useTheme();
 
@@ -77,11 +79,21 @@ const Books = () => {
         author: book.author || '',
         total_pages: book.total_pages,
         pages_read: book.pages_read,
-        status: book.status
+        status: book.status,
+        start_date: book.start_date ? book.start_date.split('T')[0] : '',
+        end_date: book.end_date ? book.end_date.split('T')[0] : ''
       });
     } else {
       setEditingBook(null);
-      setFormData({ title: '', author: '', total_pages: '', pages_read: 0, status: 'quero ler' });
+      setFormData({
+        title: '',
+        author: '',
+        total_pages: '',
+        pages_read: 0,
+        status: 'quero ler',
+        start_date: '',
+        end_date: ''
+      });
     }
     setShowModal(true);
   };
@@ -120,16 +132,22 @@ const Books = () => {
               <p className="author">{book.author || 'Autor desconhecido'}</p>
               <div className="progress">
                 <div className="progress-bar">
-                  <div 
-                    className="progress-fill" 
+                  <div
+                    className="progress-fill"
                     style={{ width: `${(book.pages_read / book.total_pages) * 100}%` }}
-                  ></div>
+                  />
                 </div>
                 <span>{book.pages_read} / {book.total_pages} páginas</span>
               </div>
               <span className={`status status-${book.status}`}>
                 {getStatusLabel(book.status)}
               </span>
+              {book.start_date && (
+                <p className="date-info">Início: {new Date(book.start_date).toLocaleDateString()}</p>
+              )}
+              {book.end_date && (
+                <p className="date-info">Término: {new Date(book.end_date).toLocaleDateString()}</p>
+              )}
             </div>
             <div className="book-actions">
               <button onClick={() => openModal(book)} className="icon-btn" title="Editar">
@@ -197,7 +215,25 @@ const Books = () => {
                   <option value="lido">Lido</option>
                 </select>
               </label>
-              <div className="modal-actions" style={{ marginTop: 'var(--space-xl)' }}> {/* espaçamento extra */}
+              <label>
+                Data de Início
+                <input
+                  type="date"
+                  name="start_date"
+                  value={formData.start_date}
+                  onChange={handleInputChange}
+                />
+              </label>
+              <label>
+                Data de Término
+                <input
+                  type="date"
+                  name="end_date"
+                  value={formData.end_date}
+                  onChange={handleInputChange}
+                />
+              </label>
+              <div className="modal-actions" style={{ marginTop: 'var(--space-xl)' }}>
                 <button type="submit" className="btn-primary">Salvar</button>
                 <button type="button" onClick={closeModal} className="btn-secondary">Cancelar</button>
               </div>

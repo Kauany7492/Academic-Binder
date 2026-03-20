@@ -182,3 +182,7 @@ CREATE TABLE IF NOT EXISTS storage_references (
     FOREIGN KEY (caderno_id) REFERENCES cadernos(id) ON DELETE CASCADE,
     FOREIGN KEY (pagina_id) REFERENCES paginas(id) ON DELETE CASCADE
 );
+
+-- Adicionar colunas de data ao final da tabela books
+ALTER TABLE books ADD COLUMN start_date DATE;
+ALTER TABLE books ADD COLUMN end_date DATE;
