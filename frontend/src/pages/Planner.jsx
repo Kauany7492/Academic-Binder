@@ -59,13 +59,23 @@ const Planner = () => {
 
   const handleAddLembrete = async (e) => {
     e.preventDefault();
+    if (!novoLembrete.titulo || !novoLembrete.data_hora) {
+      alert('Preencha o título e a data/hora.');
+      return;
+    }
+    // Converte a string datetime-local para formato ISO
+    const formattedDate = new Date(novoLembrete.data_hora).toISOString();
     try {
-      const res = await api.post('/lembretes', novoLembrete);
+      const res = await api.post('/lembretes', {
+        ...novoLembrete,
+        data_hora: formattedDate
+      });
       setLembretes([...lembretes, res.data]);
       setShowLembreteModal(false);
       setNovoLembrete({ titulo: '', descricao: '', data_hora: '', caderno_id: '' });
     } catch (error) {
-      console.error(error);
+      console.error('Erro ao salvar lembrete:', error);
+      alert('Erro ao salvar lembrete. Verifique os dados e tente novamente.');
     }
   };
 
@@ -86,8 +96,6 @@ const Planner = () => {
   ];
   const currentMonth = monthNames[date.getMonth()];
   const currentYear = date.getFullYear();
-
-  // Dias da semana em português
   const weekDays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 
   return (
@@ -110,9 +118,9 @@ const Planner = () => {
           <Calendar
             onChange={setDate}
             value={date}
-            calendarType="US" // Para começar no domingo, mas com cabeçalho customizado
+            calendarType="US"
             showNavigation={false}
-            formatShortWeekday={() => ''} // esconde os dias padrão
+            formatShortWeekday={() => ''}
           />
         </div>
 

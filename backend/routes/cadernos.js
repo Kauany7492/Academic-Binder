@@ -153,62 +153,6 @@ module.exports = (pool) => {
     }
   });
 
-  // ========== LEMBRETES ==========
-  router.get('/lembretes', async (req, res) => {
-    try {
-      const { caderno_id } = req.query;
-      let query = 'SELECT * FROM lembretes';
-      const params = [];
-      if (caderno_id) {
-        query += ' WHERE caderno_id = ?';
-        params.push(caderno_id);
-      }
-      query += ' ORDER BY data_hora';
-      const [rows] = await pool.query(query, params);
-      res.json(rows);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  router.post('/lembretes', async (req, res) => {
-    const { caderno_id, titulo, descricao, data_hora } = req.body;
-    try {
-      const [result] = await pool.query(
-        'INSERT INTO lembretes (caderno_id, titulo, descricao, data_hora) VALUES (?, ?, ?, ?)',
-        [caderno_id, titulo, descricao, data_hora]
-      );
-      const [newRecord] = await pool.query('SELECT * FROM lembretes WHERE id = ?', [result.insertId]);
-      res.status(201).json(newRecord[0]);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  router.put('/lembretes/:id', async (req, res) => {
-    const { titulo, descricao, data_hora, notificado } = req.body;
-    try {
-      await pool.query(
-        'UPDATE lembretes SET titulo = ?, descricao = ?, data_hora = ?, notificado = ? WHERE id = ?',
-        [titulo, descricao, data_hora, notificado, req.params.id]
-      );
-      const [updated] = await pool.query('SELECT * FROM lembretes WHERE id = ?', [req.params.id]);
-      res.json(updated[0]);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  router.delete('/lembretes/:id', async (req, res) => {
-    try {
-      const [result] = await pool.query('DELETE FROM lembretes WHERE id = ?', [req.params.id]);
-      if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
-      res.status(204).send();
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
   // ========== LINKS ==========
   router.get('/paginas/:paginaId/links', async (req, res) => {
     try {

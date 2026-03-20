@@ -7,6 +7,7 @@ module.exports = (pool) => {
   router.use(require('./midia')(pool));
   router.use(require('./books')(pool));
   router.use(require('./drive')(pool));
+  router.use(require('./planner')(pool)); // <-- adicionado
 
   return router;
 };
