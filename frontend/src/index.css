@@ -362,3 +362,38 @@ select:focus {
 .dark-theme .supported-formats {
   color: var(--secondary-light);
 }
+
+/* ========== BOTÃO DO DRIVE ========== */
+.drive-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+}
+
+.drive-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  transform: scale(1.1);
+}
+
+.dark-theme .drive-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.drive-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.drive-button svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
