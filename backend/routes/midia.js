@@ -223,23 +223,35 @@ module.exports = (pool) => {
 
   // ========== GERAÇÃO DE ANOTAÇÕES (UPLOAD UNIVERSAL) ==========
   router.post('/gerar-anotacoes', upload.single('file'), async (req, res) => {
+  console.log('=== INÍCIO DA REQUISIÇÃO /gerar-anotacoes ===');
+  try {
+    if (!req.file) {
+      console.log('Nenhum arquivo enviado');
+      return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+    }
+
+    console.log('Arquivo recebido:', req.file.path, 'tamanho:', req.file.size);
+
+    const filePath = req.file.path;
+    const mimeType = req.file.mimetype;
+    const { caderno_id, metodo = 'cornell', titulo: tituloPersonalizado } = req.body;
+    console.log('Dados recebidos:', { caderno_id, metodo, tituloPersonalizado, mimeType });
+
+    let textoExtraido = '';
+
+    // Extração conforme tipo de arquivo
     try {
-      if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
-
-      const filePath = req.file.path;
-      const mimeType = req.file.mimetype;
-      const { caderno_id, metodo = 'cornell', titulo: tituloPersonalizado } = req.body;
-      let textoExtraido = '';
-
-      // Extração conforme tipo de arquivo
       if (mimeType.startsWith('audio/')) {
+        console.log('Processando áudio...');
         const audioFile = fs.createReadStream(filePath);
         const transcricao = await openai.audio.transcriptions.create({
           file: audioFile,
           model: 'whisper-1'
         });
         textoExtraido = transcricao.text;
+        console.log('Áudio transcrito com sucesso. Texto:', textoExtraido.substring(0, 100));
       } else if (mimeType.startsWith('video/')) {
+        console.log('Processando vídeo...');
         const audioPath = filePath + '.mp3';
         await extractAudioFromVideo(filePath, audioPath);
         const audioFile = fs.createReadStream(audioPath);
@@ -252,59 +264,83 @@ module.exports = (pool) => {
       } else if (mimeType === 'application/pdf' ||
                  mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
                  mimeType === 'text/plain') {
+        console.log('Extraindo texto de arquivo:', mimeType);
         textoExtraido = await extractTextFromFile(filePath, mimeType);
       } else if (mimeType.startsWith('image/')) {
+        console.log('Processando imagem...');
         textoExtraido = await ocrService.extractTextFromImage(filePath);
       } else {
-        throw new Error('Tipo de arquivo não suportado');
+        throw new Error('Tipo de arquivo não suportado: ' + mimeType);
       }
-
-      if (!textoExtraido.trim()) throw new Error('Não foi possível extrair texto do arquivo');
-
-      const prompt = metodo === 'cornell'
-        ? `Crie notas no método Cornell a partir do seguinte texto: ${textoExtraido}`
-        : `Crie um resumo em tópicos (esboço) a partir do seguinte texto: ${textoExtraido}`;
-
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: prompt }],
-      });
-      const notasGeradas = completion.choices[0].message.content;
-
-      const tituloPagina = tituloPersonalizado || `Notas de ${req.file.originalname}`;
-      const [result] = await pool.query(
-        'INSERT INTO paginas (caderno_id, titulo, conteudo, metodo_anotacao) VALUES (?, ?, ?, ?)',
-        [caderno_id, tituloPagina, notasGeradas, metodo]
-      );
-
-      // Salvar no PPDRIVE (opcional)
-      try {
-        const storage = createStorageClient();
-        const bucketName = `${process.env.PPDRIVE_BUCKET_PREFIX || 'academic'}-notas`;
-        const folderPath = `/cadernos/${caderno_id}`;
-        await storage.uploadTextFile(textoExtraido, bucketName, folderPath, `${tituloPagina}_transcricao.txt`);
-        await storage.uploadTextFile(notasGeradas, bucketName, folderPath, `${tituloPagina}_notas_${metodo}.txt`);
-        console.log('Arquivos salvos no PPDRIVE');
-      } catch (storageError) {
-        console.error('Erro ao salvar no PPDRIVE (continuando):', storageError);
-      }
-
-      fs.unlinkSync(filePath);
-
-      const [newRecord] = await pool.query('SELECT * FROM paginas WHERE id = ?', [result.insertId]);
-
-      res.json({
-        success: true,
-        pagina: newRecord[0],
-        textoExtraidoPreview: textoExtraido.substring(0, 500) + '...'
-      });
-
-    } catch (error) {
-      console.error('Erro ao gerar anotações:', error);
-      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-      res.status(500).json({ error: 'Erro ao gerar anotações', details: error.message });
+    } catch (extractError) {
+      console.error('Erro na extração:', extractError);
+      throw new Error(`Falha na extração de texto: ${extractError.message}`);
     }
-  });
+
+    if (!textoExtraido.trim()) {
+      console.log('Texto extraído vazio');
+      throw new Error('Não foi possível extrair texto do arquivo');
+    }
+
+    console.log('Texto extraído (primeiros 500 chars):', textoExtraido.substring(0, 500));
+
+    const prompt = metodo === 'cornell'
+      ? `Crie notas no método Cornell a partir do seguinte texto: ${textoExtraido}`
+      : `Crie um resumo em tópicos (esboço) a partir do seguinte texto: ${textoExtraido}`;
+
+    console.log('Enviando para OpenAI...');
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const notasGeradas = completion.choices[0].message.content;
+    console.log('Notas geradas com sucesso');
+
+    const tituloPagina = tituloPersonalizado || `Notas de ${req.file.originalname}`;
+    console.log('Inserindo página no banco...');
+    const [result] = await pool.query(
+      'INSERT INTO paginas (caderno_id, titulo, conteudo, metodo_anotacao) VALUES (?, ?, ?, ?)',
+      [caderno_id, tituloPagina, notasGeradas, metodo]
+    );
+
+    // Salvar no PPDRIVE (opcional)
+    try {
+      const storage = createStorageClient();
+      const bucketName = `${process.env.PPDRIVE_BUCKET_PREFIX || 'academic'}-notas`;
+      const folderPath = `/cadernos/${caderno_id}`;
+      await storage.uploadTextFile(textoExtraido, bucketName, folderPath, `${tituloPagina}_transcricao.txt`);
+      await storage.uploadTextFile(notasGeradas, bucketName, folderPath, `${tituloPagina}_notas_${metodo}.txt`);
+      console.log('Arquivos salvos no PPDRIVE');
+    } catch (storageError) {
+      console.error('Erro ao salvar no PPDRIVE (continuando):', storageError);
+    }
+
+    // Limpa arquivo temporário
+    fs.unlinkSync(filePath);
+    console.log('Arquivo temporário removido');
+
+    const [newRecord] = await pool.query('SELECT * FROM paginas WHERE id = ?', [result.insertId]);
+
+    console.log('Resposta enviada com sucesso');
+    res.json({
+      success: true,
+      pagina: newRecord[0],
+      textoExtraidoPreview: textoExtraido.substring(0, 500) + '...'
+    });
+
+  } catch (error) {
+    console.error('Erro ao gerar anotações:', error);
+    // Se houver arquivo temporário, tenta excluir
+    if (req.file && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkErr) {
+        console.error('Erro ao excluir arquivo temporário:', unlinkErr);
+      }
+    }
+    res.status(500).json({ error: 'Erro ao gerar anotações', details: error.message });
+  }
+});
 
   // ========== GERAÇÃO DE PODCASTS COM AMAZON POLLY ==========
   router.post('/gerar-podcast', upload.single('file'), async (req, res) => {

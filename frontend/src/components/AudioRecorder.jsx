@@ -49,8 +49,8 @@ const AudioRecorder = ({ notebookId, metodo, onProcessed }) => {
       }
     } catch (error) {
       console.error('Erro ao processar áudio:', error);
-      setStatusMessage('Erro no processamento. Tente novamente.');
-      alert('Erro ao processar áudio. Verifique o console.');
+      setStatusMessage('Erro no processamento. Verifique o console.');
+      alert(`Erro ao processar áudio: ${error.response?.data?.details || error.message}`);
     } finally {
       setIsProcessing(false);
       setTimeout(() => setProgress(0), 1000);
