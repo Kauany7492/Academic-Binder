@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { FaMicrophone, FaUpload, FaLink, FaTrash, FaGoogleDrive } from 'react-icons/fa';
+import { FaMicrophone, FaUpload, FaLink, FaTrash } from 'react-icons/fa';
 import AudioRecorder from '../components/AudioRecorder';
 import DownloadButton from '../components/DownloadButton';
 import DriveButton from '../components/DriveButton';

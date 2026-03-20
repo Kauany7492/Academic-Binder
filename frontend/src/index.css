@@ -397,3 +397,17 @@ select:focus {
   width: 1.5rem;
   height: 1.5rem;
 }
+
+/* ========== LINKS ========== */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.nav-links a {
+  text-decoration: none;
+}
