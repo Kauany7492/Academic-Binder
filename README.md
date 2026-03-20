@@ -1,4 +1,3 @@
-este README.md esta certo:
 # 📚 Academic Binder - Intelligent Academic Organizer
 
 [![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org)
@@ -96,7 +95,7 @@ API Health Check: http://localhost:3000/health
 ---
 
 ## 🔧 Configuration Guide
-###Environment Variables
+### Environment Variables
 Backend (backend/.env)
 
 ```bash
@@ -211,7 +210,7 @@ All components adapt automatically when toggling themes.
 ---
 
 ## 📱 Mobile Usage
-###The application is fully responsive:
+### The application is fully responsive:
 
 - Navigation switches to top bar on mobile
 
@@ -258,7 +257,7 @@ All components adapt automatically when toggling themes.
 ---
 
 ## 📄 License
-###This project is licensed under the MIT License.
+### This project is licensed under the MIT License.
 
 ---
 
@@ -274,7 +273,7 @@ To visualize the system architecture, create a diagram located at:
 docs/architecture.png
 ```
 
-Recommended structure:
+## Recommended structure:
 
 ```
 Frontend (React)
