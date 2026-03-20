@@ -4,6 +4,7 @@ import api from '../services/api';
 import { FaMicrophone, FaUpload, FaLink, FaTrash, FaGoogleDrive } from 'react-icons/fa';
 import AudioRecorder from '../components/AudioRecorder';
 import DownloadButton from '../components/DownloadButton';
+import DriveButton from '../components/DriveButton';
 
 const NotebookDetail = () => {
   const { id } = useParams();
@@ -20,7 +21,7 @@ const NotebookDetail = () => {
   const [linkUniversidade, setLinkUniversidade] = useState('');
   const [editingLink, setEditingLink] = useState(false);
   const [uploadingNotes, setUploadingNotes] = useState(false);
-  const [progress, setProgress] = useState(0); // barra de progresso
+  const [progress, setProgress] = useState(0);
   const [pdfs, setPdfs] = useState([]);
   const [podcasts, setPodcasts] = useState([]);
   const [driveToken, setDriveToken] = useState(localStorage.getItem('driveToken'));
@@ -126,7 +127,7 @@ const NotebookDetail = () => {
     formData.append('titulo', `Notas de ${file.name}`);
     try {
       setUploadingNotes(true);
-      setProgress(30); // simulação de progresso
+      setProgress(30);
       const res = await api.post('/gerar-anotacoes', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
@@ -271,14 +272,10 @@ const NotebookDetail = () => {
                 <div className="pagina-header">
                   <h3>{pagina.titulo}</h3>
                   <div className="pagina-actions">
-                    <button
+                    <DriveButton
                       onClick={() => exportToDrive(pagina.id)}
                       disabled={exporting}
-                      className="icon-btn export"
-                      title="Exportar para Google Drive"
-                    >
-                      <FaGoogleDrive />
-                    </button>
+                    />
                     <button onClick={() => handleDeletePagina(pagina.id)} className="icon-btn delete" title="Excluir página">
                       <FaTrash />
                     </button>

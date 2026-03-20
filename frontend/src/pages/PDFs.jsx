@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { FaUpload, FaTrash, FaEye, FaTimes } from 'react-icons/fa';
 import DownloadButton from '../components/DownloadButton';
+import DriveButton from '../components/DriveButton';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -18,6 +19,8 @@ const PDFs = () => {
   const [previewPdf, setPreviewPdf] = useState(null);
   const [numPages, setNumPages] = useState(null);
   const [progress, setProgress] = useState(0);
+  const [driveToken, setDriveToken] = useState(localStorage.getItem('driveToken'));
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchPDFs();
@@ -85,6 +88,25 @@ const PDFs = () => {
     }
   };
 
+  const handleDriveExport = async (pdf) => {
+    if (!driveToken) {
+      window.location.href = `${process.env.REACT_APP_API_URL}/auth/google?state=pdf-${pdf.id}`;
+      return;
+    }
+    setExporting(true);
+    try {
+      await api.post('/drive/export-pdf', { pdf_id: pdf.id }, {
+        headers: { Authorization: `Bearer ${driveToken}` }
+      });
+      alert('PDF enviado para o Drive com sucesso!');
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      alert('Falha ao enviar para o Drive.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handlePreview = (pdf) => {
     const baseURL = api.defaults.baseURL.replace('/api', '');
     setPreviewPdf({
@@ -143,6 +165,7 @@ const PDFs = () => {
                 <FaEye /> Visualizar
               </button>
               <DownloadButton filePath={pdf.arquivo_path} fileName={pdf.titulo + '.pdf'} />
+              <DriveButton onClick={() => handleDriveExport(pdf)} disabled={exporting} />
               <button onClick={() => handleDelete(pdf.id)} className="delete">
                 <FaTrash />
               </button>
