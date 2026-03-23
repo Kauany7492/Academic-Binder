@@ -6,7 +6,6 @@ const path = require('path');
 const fs = require('fs');
 
 module.exports = (pool) => {
-  // ========== CONFIGURAÇÃO DO GOOGLE OAUTH2 ==========
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
@@ -14,7 +13,7 @@ module.exports = (pool) => {
   );
   const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
-  // ========== MIDDLEWARE DE AUTENTICAÇÃO GOOGLE ==========
+  // Middleware que verifica token JWT e obtém o usuário do banco
   async function ensureGoogleAuth(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
@@ -22,12 +21,25 @@ module.exports = (pool) => {
     }
 
     const token = authHeader.split(' ')[1];
-
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const [user] = await pool.query('SELECT * FROM usuarios_google WHERE id = ?', [decoded.userId]);
+      const [user] = await pool.query('SELECT * FROM users WHERE id = ?', [decoded.userId]);
       if (user.length === 0) {
         return res.status(401).json({ error: 'Usuário não encontrado' });
+      }
+
+      // Aqui você precisará buscar o token de acesso do Google do usuário
+      // Para simplificar, vamos supor que você já tenha armazenado o token do Google na tabela users (ou uma tabela separada)
+      const googleTokens = await pool.query('SELECT access_token, refresh_token, token_expiry FROM user_google_tokens WHERE user_id = ?', [user[0].id]);
+      if (googleTokens.length === 0) {
+        // Redirecionar para autenticação OAuth
+        const authUrl = oauth2Client.generateAuthUrl({
+          access_type: 'offline',
+          scope: SCOPES,
+          prompt: 'consent',
+          state: req.query.state || 'default'
+        });
+        return res.redirect(authUrl);
       }
 
       const userData = user[0];
@@ -36,22 +48,22 @@ module.exports = (pool) => {
         process.env.GOOGLE_CLIENT_SECRET
       );
       oauth.setCredentials({
-        access_token: userData.access_token,
-        refresh_token: userData.refresh_token
+        access_token: googleTokens[0].access_token,
+        refresh_token: googleTokens[0].refresh_token
       });
 
-      if (new Date(userData.token_expiry) < new Date()) {
+      if (new Date(googleTokens[0].token_expiry) < new Date()) {
         console.log('Token expirado, renovando...');
         const { credentials } = await oauth.refreshAccessToken();
         oauth.setCredentials(credentials);
         await pool.query(
-          'UPDATE usuarios_google SET access_token = ?, token_expiry = ? WHERE id = ?',
-          [credentials.access_token, new Date(credentials.expiry_date), userData.id]
+          'UPDATE user_google_tokens SET access_token = ?, token_expiry = ? WHERE user_id = ?',
+          [credentials.access_token, new Date(credentials.expiry_date), user[0].id]
         );
       }
 
       req.googleAuth = oauth;
-      req.userId = userData.id;
+      req.userId = user[0].id;
       next();
     } catch (err) {
       console.error('Erro no middleware ensureGoogleAuth:', err);
@@ -59,7 +71,7 @@ module.exports = (pool) => {
     }
   }
 
-  // ========== ROTAS DE AUTENTICAÇÃO ==========
+  // Rota de autenticação OAuth (inicia o fluxo)
   router.get('/auth/google', (req, res) => {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
@@ -80,33 +92,41 @@ module.exports = (pool) => {
       const userInfo = await oauth2.userinfo.get();
       const { id: googleId, email, name } = userInfo.data;
 
-      const [userResult] = await pool.query(
-        `INSERT INTO usuarios_google (google_id, email, nome, access_token, refresh_token, token_expiry)
-         VALUES (?, ?, ?, ?, ?, ?)
+      // Aqui você precisa encontrar o usuário do seu sistema (que fez login com JWT)
+      // O state deve conter o userId ou você pode passar o token JWT
+      // Para simplificar, assuma que state contém o userId (ex: 'user-123')
+      const userId = state.startsWith('user-') ? state.substring(5) : null;
+      if (!userId) {
+        return res.redirect(`${process.env.FRONTEND_URL}/?error=missing_user`);
+      }
+
+      // Armazenar ou atualizar os tokens do Google para este usuário
+      await pool.query(
+        `INSERT INTO user_google_tokens (user_id, access_token, refresh_token, token_expiry)
+         VALUES (?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
            access_token = VALUES(access_token),
            refresh_token = COALESCE(VALUES(refresh_token), refresh_token),
            token_expiry = VALUES(token_expiry)`,
-        [googleId, email, name, tokens.access_token, tokens.refresh_token, new Date(tokens.expiry_date)]
+        [userId, tokens.access_token, tokens.refresh_token, new Date(tokens.expiry_date)]
       );
 
-      const userId = userResult.insertId;
-      const jwtToken = jwt.sign({ userId, googleId }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-      res.redirect(`${process.env.FRONTEND_URL}/notebooks/${state}?token=${jwtToken}`);
+      // Redireciona de volta para a página do usuário com o token JWT (que já estava no front)
+      const jwtToken = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      res.redirect(`${process.env.FRONTEND_URL}/?token=${jwtToken}`);
     } catch (error) {
       console.error('Erro no callback OAuth:', error);
       res.redirect(`${process.env.FRONTEND_URL}/?error=auth_failed`);
     }
   });
 
-  // ========== ROTAS DO GOOGLE DRIVE (PROTEGIDAS) ==========
+  // Rotas protegidas do Drive
   router.post('/drive/export-page', ensureGoogleAuth, async (req, res) => {
     const { pagina_id } = req.body;
     try {
       const [pagina] = await pool.query(
-        'SELECT p.*, c.titulo as caderno_titulo FROM paginas p JOIN cadernos c ON p.caderno_id = c.id WHERE p.id = ?',
-        [pagina_id]
+        'SELECT p.*, c.titulo as caderno_titulo FROM paginas p JOIN cadernos c ON p.caderno_id = c.id WHERE p.id = ? AND p.user_id = ?',
+        [pagina_id, req.userId]
       );
       if (pagina.length === 0) return res.status(404).json({ error: 'Página não encontrada' });
 
@@ -114,7 +134,10 @@ module.exports = (pool) => {
 
       // Garantir que a pasta do caderno exista
       let folderId;
-      const [folderRef] = await pool.query('SELECT folder_id FROM storage_references WHERE caderno_id = ? AND pagina_id IS NULL', [caderno_id]);
+      const [folderRef] = await pool.query(
+        'SELECT folder_id FROM storage_references WHERE caderno_id = ? AND pagina_id IS NULL AND user_id = ?',
+        [caderno_id, req.userId]
+      );
       if (folderRef.length === 0) {
         const drive = google.drive({ version: 'v3', auth: req.googleAuth });
         const folderMetadata = {
@@ -127,8 +150,8 @@ module.exports = (pool) => {
         });
         folderId = folder.data.id;
         await pool.query(
-          'INSERT INTO storage_references (caderno_id, folder_id) VALUES (?, ?)',
-          [caderno_id, folderId]
+          'INSERT INTO storage_references (caderno_id, folder_id, user_id) VALUES (?, ?, ?)',
+          [caderno_id, folderId, req.userId]
         );
       } else {
         folderId = folderRef[0].folder_id;
@@ -165,8 +188,9 @@ module.exports = (pool) => {
       });
 
       await pool.query(
-        'INSERT INTO storage_references (caderno_id, pagina_id, folder_id, file_id, link, provider) VALUES (?, ?, ?, ?, ?, ?)',
-        [caderno_id, pagina_id, subFolderId, file.data.id, file.data.webViewLink, 'googledrive']
+        `INSERT INTO storage_references (caderno_id, pagina_id, folder_id, file_id, link, user_id, provider)
+         VALUES (?, ?, ?, ?, ?, ?, 'googledrive')`,
+        [caderno_id, pagina_id, subFolderId, file.data.id, file.data.webViewLink, req.userId]
       );
 
       res.json({
@@ -183,7 +207,7 @@ module.exports = (pool) => {
   router.post('/drive/export-pdf', ensureGoogleAuth, async (req, res) => {
     const { pdf_id } = req.body;
     try {
-      const [pdf] = await pool.query('SELECT * FROM pdfs WHERE id = ?', [pdf_id]);
+      const [pdf] = await pool.query('SELECT * FROM pdfs WHERE id = ? AND user_id = ?', [pdf_id, req.userId]);
       if (pdf.length === 0) return res.status(404).json({ error: 'PDF não encontrado' });
       const pdfData = pdf[0];
 
@@ -195,14 +219,15 @@ module.exports = (pool) => {
       let folderId = null;
       if (pdfData.caderno_id) {
         const [folderRef] = await pool.query(
-          'SELECT folder_id FROM storage_references WHERE caderno_id = ? AND pagina_id IS NULL',
-          [pdfData.caderno_id]
+          'SELECT folder_id FROM storage_references WHERE caderno_id = ? AND pagina_id IS NULL AND user_id = ?',
+          [pdfData.caderno_id, req.userId]
         );
 
         if (folderRef.length > 0) {
           folderId = folderRef[0].folder_id;
         } else {
-          const [caderno] = await pool.query('SELECT titulo FROM cadernos WHERE id = ?', [pdfData.caderno_id]);
+          const [caderno] = await pool.query('SELECT titulo FROM cadernos WHERE id = ? AND user_id = ?', [pdfData.caderno_id, req.userId]);
+          if (caderno.length === 0) return res.status(404).json({ error: 'Caderno não encontrado' });
           const cadNome = caderno[0].titulo;
 
           const drive = google.drive({ version: 'v3', auth: req.googleAuth });
@@ -217,8 +242,8 @@ module.exports = (pool) => {
           folderId = folder.data.id;
 
           await pool.query(
-            'INSERT INTO storage_references (caderno_id, folder_id) VALUES (?, ?)',
-            [pdfData.caderno_id, folderId]
+            'INSERT INTO storage_references (caderno_id, folder_id, user_id) VALUES (?, ?, ?)',
+            [pdfData.caderno_id, folderId, req.userId]
           );
         }
       }
@@ -240,9 +265,9 @@ module.exports = (pool) => {
       });
 
       await pool.query(
-        `INSERT INTO storage_references (caderno_id, pagina_id, file_id, link, provider)
-         VALUES (?, ?, ?, ?, 'googledrive')`,
-        [pdfData.caderno_id, null, uploadedFile.data.id, uploadedFile.data.webViewLink]
+        `INSERT INTO storage_references (caderno_id, pagina_id, file_id, link, user_id, provider)
+         VALUES (?, ?, ?, ?, ?, 'googledrive')`,
+        [pdfData.caderno_id, null, uploadedFile.data.id, uploadedFile.data.webViewLink, req.userId]
       );
 
       res.json({
@@ -260,13 +285,13 @@ module.exports = (pool) => {
   router.post('/drive/export-notebook', ensureGoogleAuth, async (req, res) => {
     const { notebook_id } = req.body;
     try {
-      const [notebook] = await pool.query('SELECT * FROM cadernos WHERE id = ?', [notebook_id]);
+      const [notebook] = await pool.query('SELECT * FROM cadernos WHERE id = ? AND user_id = ?', [notebook_id, req.userId]);
       if (notebook.length === 0) return res.status(404).json({ error: 'Caderno não encontrado' });
       const notebookData = notebook[0];
 
       const [folderRef] = await pool.query(
-        'SELECT folder_id, link FROM storage_references WHERE caderno_id = ? AND pagina_id IS NULL',
-        [notebook_id]
+        'SELECT folder_id, link FROM storage_references WHERE caderno_id = ? AND pagina_id IS NULL AND user_id = ?',
+        [notebook_id, req.userId]
       );
 
       if (folderRef.length > 0) {
@@ -291,9 +316,9 @@ module.exports = (pool) => {
       const folderLink = folder.data.webViewLink;
 
       await pool.query(
-        `INSERT INTO storage_references (caderno_id, folder_id, link, provider)
-         VALUES (?, ?, ?, 'googledrive')`,
-        [notebook_id, folderId, folderLink]
+        `INSERT INTO storage_references (caderno_id, folder_id, link, user_id, provider)
+         VALUES (?, ?, ?, ?, 'googledrive')`,
+        [notebook_id, folderId, folderLink, req.userId]
       );
 
       res.json({
@@ -312,7 +337,10 @@ module.exports = (pool) => {
   router.get('/drive/page-status/:pagina_id', async (req, res) => {
     const { pagina_id } = req.params;
     try {
-      const [ref] = await pool.query('SELECT * FROM storage_references WHERE pagina_id = ?', [pagina_id]);
+      const [ref] = await pool.query(
+        'SELECT * FROM storage_references WHERE pagina_id = ? AND user_id = ?',
+        [pagina_id, req.user.id]
+      );
       if (ref.length > 0) {
         res.json({ exported: true, link: ref[0].link });
       } else {
