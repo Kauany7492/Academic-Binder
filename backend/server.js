@@ -1,4 +1,3 @@
-// backend/server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -9,18 +8,45 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
+// ========== CONFIGURAÇÃO CORS ==========
+// Lista de origens permitidas (incluindo seu domínio personalizado)
+const allowedOrigins = [
+  'http://localhost:3001',                          // desenvolvimento local
+  'https://academic-binder.shop',                   // seu domínio personalizado
+  'https://academic-binder-frontend.onrender.com',  // (opcional) caso ainda use Render
+  // Adicione outras origens se necessário
+];
 
+app.use(cors({
+  origin: function (origin, callback) {
+    // Permite requisições sem origem (ex: ferramentas como Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'A política CORS para este site não permite acesso a partir da origem especificada.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,                               // permite envio de cookies/credenciais
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// ========== MIDDLEWARES ==========
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Servir arquivos estáticos (uploads e áudios)
 app.use('/uploads', express.static('uploads'));
 app.use('/audio', express.static('audio'));
 
+// ========== CRIAÇÃO DE DIRETÓRIOS ==========
 const dirs = ['./uploads/podcasts', './uploads/pdfs', './audio', './uploads/temp'];
 dirs.forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// Configuração do pool de conexões para TiDB (MySQL compatível)
+// ========== CONEXÃO COM O BANCO DE DADOS (TiDB / MySQL) ==========
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT) || 4000,
@@ -38,7 +64,7 @@ const pool = mysql.createPool({
   } : undefined
 });
 
-// Testar conexão
+// Teste de conexão (opcional)
 async function testConnection() {
   try {
     const connection = await pool.getConnection();
@@ -50,14 +76,17 @@ async function testConnection() {
 }
 testConnection();
 
-// Rotas da API
-app.use('/api', require('./routes/api')(pool));
+// ========== ROTAS ==========
+// Importa o router principal (que combina todos os submódulos)
+const apiRouter = require('./routes/api')(pool);
+app.use('/api', apiRouter);
 
-// Health check
+// Endpoint de health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date() });
 });
 
+// ========== INICIALIZAÇÃO DO SERVIDOR ==========
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
 });
