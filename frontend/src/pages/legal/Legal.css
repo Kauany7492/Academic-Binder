@@ -1,0 +1,54 @@
+.legal-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+  background: var(--card-light);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.1);
+}
+
+.dark-theme .legal-container {
+  background: var(--card-dark);
+  color: var(--text-dark);
+}
+
+.legal-container h1 {
+  color: var(--primary-dark);
+  margin-bottom: var(--space-lg);
+  font-size: 2rem;
+  text-align: center;
+}
+
+.dark-theme .legal-container h1 {
+  color: var(--text-dark);
+}
+
+.legal-container h2 {
+  color: var(--primary-medium);
+  margin: var(--space-lg) 0 var(--space-sm);
+  font-size: 1.4rem;
+}
+
+.dark-theme .legal-container h2 {
+  color: var(--secondary-light);
+}
+
+.legal-container p, .legal-container li {
+  line-height: 1.6;
+  margin-bottom: var(--space-sm);
+}
+
+.legal-container a {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+.dark-theme .legal-container a {
+  color: var(--secondary-light);
+}
+
+@media (max-width: 768px) {
+  .legal-container {
+    padding: var(--space-md);
+  }
+}

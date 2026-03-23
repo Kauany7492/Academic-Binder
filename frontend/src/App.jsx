@@ -9,6 +9,8 @@ import NotebookDetail from './pages/NotebookDetail';
 import Books from './pages/Books';
 import Podcasts from './pages/Podcasts';
 import PDFs from './pages/PDFs';
+import PrivacyPolicy from './pages/legal/PrivacyPolicy';
+import TermsOfService from './pages/legal/TermsOfService';
 import './App.css';
 
 function App() {
@@ -26,6 +28,8 @@ function App() {
               <Route path="/books" element={<Books />} />
               <Route path="/podcasts" element={<Podcasts />} />
               <Route path="/pdfs" element={<PDFs />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
             </Routes>
           </main>
         </div>
