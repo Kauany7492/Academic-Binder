@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { FaUpload, FaTrash, FaEye, FaTimes } from 'react-icons/fa';
 import DownloadButton from '../components/DownloadButton';
-import DriveButton from '../components/DriveButton';
+import DriveButton from '../components/DriveButton'; // <-- importação correta
 import { Document, Page, pdfjs } from 'react-pdf';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
