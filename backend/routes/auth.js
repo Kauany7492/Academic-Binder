@@ -3,6 +3,7 @@ const router = express.Router();
 const AuthService = require('../services/auth.service');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
+const authenticate = require('../middleware/authenticate'); // <-- importado
 
 // Limite de tentativas para evitar ataques de força bruta
 const limiter = rateLimit({
@@ -114,7 +115,7 @@ module.exports = (pool) => {
     }
   });
 
-  // ========== LOGOUT (simples) ==========
+  // ========== LOGOUT ==========
   router.post('/logout', async (req, res) => {
     // Em uma implementação mais completa, você poderia invalidar o refresh token
     // armazenando-o em uma tabela de tokens revogados.
@@ -122,17 +123,17 @@ module.exports = (pool) => {
   });
 
   // ========== OBTER DADOS DO USUÁRIO AUTENTICADO ==========
-  router.get('/me', async (req, res) => {
-    // Este endpoint deve ser protegido, mas o middleware de autenticação será aplicado no api.js
-    // A implementação fica no arquivo principal (ou aqui, mas usamos o middleware)
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: 'Não autenticado' });
-
+  // Esta rota deve ser protegida, então usamos o middleware authenticate
+  router.get('/me', authenticate, async (req, res) => {
     try {
-      const [users] = await pool.query('SELECT id, name, email FROM users WHERE id = ?', [userId]);
+      const [users] = await pool.query(
+        'SELECT id, name, email FROM users WHERE id = ?',
+        [req.user.id]
+      );
       if (users.length === 0) return res.status(404).json({ error: 'Usuário não encontrado' });
       res.json(users[0]);
     } catch (err) {
+      console.error('Erro ao buscar usuário:', err);
       res.status(500).json({ error: err.message });
     }
   });
