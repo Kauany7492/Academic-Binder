@@ -4,16 +4,17 @@ import api from '../services/api';
 import { FaEdit, FaTrash, FaPlus, FaSearch } from 'react-icons/fa';
 import DriveButton from '../components/DriveButton';
 import AccessLink from '../components/AccessLink';
+import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import './Notebooks.css';
 
 const Notebooks = () => {
+  const { token, login, exportNotebook, loading: driveLoading } = useGoogleDrive();
   const [notebooks, setNotebooks] = useState([]);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ titulo: '', descricao: '', cor: '#806130' });
   const [exporting, setExporting] = useState(false);
-  const [driveToken, setDriveToken] = useState(localStorage.getItem('driveToken'));
 
   useEffect(() => {
     fetchNotebooks();
@@ -57,15 +58,13 @@ const Notebooks = () => {
   };
 
   const handleDriveExport = async (notebook) => {
-    if (!driveToken) {
-      window.location.href = `${process.env.REACT_APP_API_URL}/auth/google?state=notebook-${notebook.id}`;
+    if (!token) {
+      login(`notebook-${notebook.id}`);
       return;
     }
     setExporting(true);
     try {
-      await api.post('/drive/export-notebook', { notebook_id: notebook.id }, {
-        headers: { Authorization: `Bearer ${driveToken}` }
-      });
+      await exportNotebook(notebook.id);
       alert('Caderno exportado para o Drive com sucesso!');
     } catch (error) {
       console.error('Erro ao exportar caderno:', error);
@@ -123,7 +122,8 @@ const Notebooks = () => {
               </button>
               <DriveButton
                 onClick={() => handleDriveExport(notebook)}
-                disabled={exporting}
+                disabled={exporting || driveLoading}
+                title="Enviar para o Google Drive"
               />
               <button
                 onClick={() => handleDelete(notebook.id)}

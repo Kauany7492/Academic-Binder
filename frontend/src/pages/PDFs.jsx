@@ -4,12 +4,14 @@ import { FaUpload, FaTrash, FaEye, FaTimes } from 'react-icons/fa';
 import DownloadButton from '../components/DownloadButton';
 import DriveButton from '../components/DriveButton';
 import { Document, Page, pdfjs } from 'react-pdf';
+import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const PDFs = () => {
+  const { token, login, exportPDF, loading: driveLoading } = useGoogleDrive();
   const [pdfs, setPdfs] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -19,23 +21,11 @@ const PDFs = () => {
   const [previewPdf, setPreviewPdf] = useState(null);
   const [numPages, setNumPages] = useState(null);
   const [progress, setProgress] = useState(0);
-  const [driveToken, setDriveToken] = useState(localStorage.getItem('driveToken'));
-  const [exporting, setExporting] = useState({}); // estado por id do PDF
+  const [exporting, setExporting] = useState({});
 
   useEffect(() => {
     fetchPDFs();
     fetchCadernos();
-  }, []);
-
-  // Captura token após login OAuth
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    if (token) {
-      localStorage.setItem('driveToken', token);
-      setDriveToken(token);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
   }, []);
 
   const fetchPDFs = async () => {
@@ -102,22 +92,17 @@ const PDFs = () => {
   };
 
   const handleDriveExport = async (pdf) => {
-    if (!driveToken) {
-      // Redireciona para o login OAuth, passando o id do PDF como state
-      window.location.href = `${process.env.REACT_APP_API_URL}/auth/google?state=pdf-${pdf.id}`;
+    if (!token) {
+      login(`pdf-${pdf.id}`);
       return;
     }
-
     setExporting(prev => ({ ...prev, [pdf.id]: true }));
     try {
-      const res = await api.post('/drive/export-pdf', { pdf_id: pdf.id }, {
-        headers: { Authorization: `Bearer ${driveToken}` }
-      });
-      alert(`PDF enviado para o Drive com sucesso! ${res.data.link}`);
-      // Opcional: atualizar status local
+      const result = await exportPDF(pdf.id);
+      alert(`PDF enviado para o Drive com sucesso! ${result.link}`);
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
-      alert('Falha ao enviar para o Drive. Verifique o console.');
+      alert('Falha ao enviar para o Drive.');
     } finally {
       setExporting(prev => ({ ...prev, [pdf.id]: false }));
     }
@@ -183,7 +168,7 @@ const PDFs = () => {
               <DownloadButton filePath={pdf.arquivo_path} fileName={pdf.titulo + '.pdf'} />
               <DriveButton
                 onClick={() => handleDriveExport(pdf)}
-                disabled={exporting[pdf.id]}
+                disabled={exporting[pdf.id] || driveLoading}
                 title="Enviar para o Google Drive"
               />
               <button onClick={() => handleDelete(pdf.id)} className="delete">
