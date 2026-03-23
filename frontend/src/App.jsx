@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
+import PrivateRoute from './components/PrivateRoute';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Planner from './pages/Planner';
@@ -25,11 +26,31 @@ function App() {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/planner" element={<Planner />} />
-                <Route path="/notebooks" element={<Notebooks />} />
-                <Route path="/notebooks/:id" element={<NotebookDetail />} />
-                <Route path="/books" element={<Books />} />
-                <Route path="/podcasts" element={<Podcasts />} />
-                <Route path="/pdfs" element={<PDFs />} />
+                <Route path="/notebooks" element={
+                  <PrivateRoute>
+                    <Notebooks />
+                  </PrivateRoute>
+                } />
+                <Route path="/notebooks/:id" element={
+                  <PrivateRoute>
+                    <NotebookDetail />
+                  </PrivateRoute>
+                } />
+                <Route path="/books" element={
+                  <PrivateRoute>
+                    <Books />
+                  </PrivateRoute>
+                } />
+                <Route path="/podcasts" element={
+                  <PrivateRoute>
+                    <Podcasts />
+                  </PrivateRoute>
+                } />
+                <Route path="/pdfs" element={
+                  <PrivateRoute>
+                    <PDFs />
+                  </PrivateRoute>
+                } />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
               </Routes>
