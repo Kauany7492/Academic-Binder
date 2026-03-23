@@ -12,6 +12,8 @@ const Home = () => {
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchRecentItems();
@@ -19,17 +21,27 @@ const Home = () => {
   }, []);
 
   const fetchRecentItems = async () => {
+    setLoading(true);
     try {
-      const [notebooksRes, pdfsRes, podcastsRes] = await Promise.all([
-        api.get('/cadernos?limit=3'),
-        api.get('/pdfs?limit=3'),
-        api.get('/podcasts-gerados?limit=3')
-      ]);
+      // Buscar cadernos recentes (últimos 3)
+      const notebooksRes = await api.get('/cadernos?limit=3');
+      console.log('Notebooks recentes:', notebooksRes.data);
       setRecentNotebooks(notebooksRes.data);
+
+      // Buscar PDFs recentes (últimos 3)
+      const pdfsRes = await api.get('/pdfs?limit=3');
       setRecentPDFs(pdfsRes.data);
+
+      // Buscar podcasts gerados recentes (últimos 3)
+      const podcastsRes = await api.get('/podcasts-gerados?limit=3');
       setRecentPodcasts(podcastsRes.data);
+
+      setError(null);
     } catch (error) {
       console.error('Erro ao buscar dados recentes:', error);
+      setError('Não foi possível carregar os itens recentes. Tente novamente mais tarde.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,9 +60,17 @@ const Home = () => {
   };
 
   const chartData = stats?.weekly?.map(item => ({
-    date: format(new Date(item.date), 'dd/MM'),
+    date: format(parseISO(item.date), 'dd/MM'),
     pages: parseInt(item.total_pages) || 0
   })) || [];
+
+  if (loading) {
+    return <div className="loading">Carregando...</div>;
+  }
+
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
 
   return (
     <div className="home-container">
