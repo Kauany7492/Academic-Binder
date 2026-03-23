@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Planner from './pages/Planner';
@@ -16,24 +17,26 @@ import './App.css';
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <div className="app">
-          <Navbar />
-          <main className="main-content">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/planner" element={<Planner />} />
-              <Route path="/notebooks" element={<Notebooks />} />
-              <Route path="/notebooks/:id" element={<NotebookDetail />} />
-              <Route path="/books" element={<Books />} />
-              <Route path="/podcasts" element={<Podcasts />} />
-              <Route path="/pdfs" element={<PDFs />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<TermsOfService />} />
-            </Routes>
-          </main>
-        </div>
-      </Router>
+      <AuthProvider>
+        <Router>
+          <div className="app">
+            <Navbar />
+            <main className="main-content">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/planner" element={<Planner />} />
+                <Route path="/notebooks" element={<Notebooks />} />
+                <Route path="/notebooks/:id" element={<NotebookDetail />} />
+                <Route path="/books" element={<Books />} />
+                <Route path="/podcasts" element={<Podcasts />} />
+                <Route path="/pdfs" element={<PDFs />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+              </Routes>
+            </main>
+          </div>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
