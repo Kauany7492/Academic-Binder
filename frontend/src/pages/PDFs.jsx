@@ -20,11 +20,22 @@ const PDFs = () => {
   const [numPages, setNumPages] = useState(null);
   const [progress, setProgress] = useState(0);
   const [driveToken, setDriveToken] = useState(localStorage.getItem('driveToken'));
-  const [exporting, setExporting] = useState(false);
+  const [exporting, setExporting] = useState({}); // estado por id do PDF
 
   useEffect(() => {
     fetchPDFs();
     fetchCadernos();
+  }, []);
+
+  // Captura token após login OAuth
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      localStorage.setItem('driveToken', token);
+      setDriveToken(token);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
 
   const fetchPDFs = async () => {
@@ -72,6 +83,7 @@ const PDFs = () => {
       setTimeout(() => setProgress(0), 1000);
     } catch (error) {
       console.error(error);
+      alert('Erro ao fazer upload do PDF');
     } finally {
       setUploading(false);
     }
@@ -84,26 +96,30 @@ const PDFs = () => {
         fetchPDFs();
       } catch (error) {
         console.error(error);
+        alert('Erro ao excluir PDF');
       }
     }
   };
 
   const handleDriveExport = async (pdf) => {
     if (!driveToken) {
+      // Redireciona para o login OAuth, passando o id do PDF como state
       window.location.href = `${process.env.REACT_APP_API_URL}/auth/google?state=pdf-${pdf.id}`;
       return;
     }
-    setExporting(true);
+
+    setExporting(prev => ({ ...prev, [pdf.id]: true }));
     try {
-      await api.post('/drive/export-pdf', { pdf_id: pdf.id }, {
+      const res = await api.post('/drive/export-pdf', { pdf_id: pdf.id }, {
         headers: { Authorization: `Bearer ${driveToken}` }
       });
-      alert('PDF enviado para o Drive com sucesso!');
+      alert(`PDF enviado para o Drive com sucesso! ${res.data.link}`);
+      // Opcional: atualizar status local
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
-      alert('Falha ao enviar para o Drive.');
+      alert('Falha ao enviar para o Drive. Verifique o console.');
     } finally {
-      setExporting(false);
+      setExporting(prev => ({ ...prev, [pdf.id]: false }));
     }
   };
 
@@ -165,7 +181,11 @@ const PDFs = () => {
                 <FaEye /> Visualizar
               </button>
               <DownloadButton filePath={pdf.arquivo_path} fileName={pdf.titulo + '.pdf'} />
-              <DriveButton onClick={() => handleDriveExport(pdf)} disabled={exporting} />
+              <DriveButton
+                onClick={() => handleDriveExport(pdf)}
+                disabled={exporting[pdf.id]}
+                title="Enviar para o Google Drive"
+              />
               <button onClick={() => handleDelete(pdf.id)} className="delete">
                 <FaTrash />
               </button>
