@@ -4,20 +4,20 @@ const router = express.Router();
 module.exports = (pool) => {
   // ========== CRUD CADERNOS ==========
   router.get('/cadernos', async (req, res) => {
-    try {
-      const { limit } = req.query;
-      let query = 'SELECT * FROM cadernos ORDER BY created_at DESC';
-      const params = [];
-      if (limit) {
-        query += ' LIMIT ?';
-        params.push(parseInt(limit));
-      }
-      const [rows] = await pool.query(query, params);
-      res.json(rows);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
+  try {
+    const { limit } = req.query;
+    let query = 'SELECT * FROM cadernos ORDER BY created_at DESC';
+    const params = [];
+    if (limit) {
+      query += ' LIMIT ?';
+      params.push(parseInt(limit));
     }
-  });
+    const [rows] = await pool.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
   router.get('/cadernos/:id', async (req, res) => {
     try {
