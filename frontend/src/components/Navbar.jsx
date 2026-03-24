@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { FaHome, FaCalendarAlt, FaBook, FaPodcast, FaFilePdf, FaMoon, FaSun, FaBookOpen, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa';
 import LoginModal from './LoginModal';
+import { FaStickyNote } from 'react-icons/fa';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -16,9 +17,10 @@ const Navbar = () => {
     { path: '/', icon: <FaHome />, label: 'Home' },
     { path: '/planner', icon: <FaCalendarAlt />, label: 'Planner' },
     { path: '/notebooks', icon: <FaBook />, label: 'Notebooks' },
+    { path: '/notes', icon: <FaStickyNote />, label: 'Anotações' },
     { path: '/books', icon: <FaBookOpen />, label: 'Livros' },
     { path: '/podcasts', icon: <FaPodcast />, label: 'Podcasts' },
-    { path: '/pdfs', icon: <FaFilePdf />, label: 'PDFs' },
+    { path: '/pdfs', icon: <FaFilePdf />, label: 'PDFs' }
   ];
 
   return (

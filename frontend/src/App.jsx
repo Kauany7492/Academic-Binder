@@ -13,6 +13,10 @@ import Podcasts from './pages/Podcasts';
 import PDFs from './pages/PDFs';
 import PrivacyPolicy from './pages/legal/PrivacyPolicy';
 import TermsOfService from './pages/legal/TermsOfService';
+import NotesList from './pages/notes/NotesList';
+import NoteDetail from './pages/notes/NoteDetail';
+import NoteCreate from './pages/notes/NoteCreate';
+import NoteEdit from './pages/notes/NoteEdit';
 import './App.css';
 
 function App() {
@@ -53,6 +57,10 @@ function App() {
                 } />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/notes" element={<NotesList />} />
+                <Route path="/notes/create" element={<NoteCreate />} />
+                <Route path="/notes/:id" element={<NoteDetail />} />
+                <Route path="/notes/:id/edit" element={<NoteEdit />} />
               </Routes>
             </main>
           </div>

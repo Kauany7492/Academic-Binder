@@ -1,0 +1,70 @@
+.note-card {
+  background: var(--card-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  box-shadow: 0 0.125rem 0.5rem rgba(0,0,0,0.1);
+  transition: var(--transition);
+  border: 0.0625rem solid var(--border-light);
+}
+
+.dark-theme .note-card {
+  background: var(--card-dark);
+  border-color: var(--border-dark);
+  color: var(--text-dark);
+}
+
+.note-card h3 {
+  margin-bottom: var(--space-sm);
+  font-size: 1.2rem;
+}
+
+.note-type {
+  color: var(--primary-medium);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-sm);
+}
+
+.note-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--primary-dark);
+  margin-bottom: var(--space-md);
+}
+
+.dark-theme .note-meta {
+  color: var(--secondary-light);
+}
+
+.note-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.note-actions a,
+.note-actions button {
+  background: transparent;
+  border: none;
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.dark-theme .note-actions a,
+.dark-theme .note-actions button {
+  color: var(--text-dark);
+}
+
+.note-actions a:hover,
+.note-actions button:hover {
+  background: rgba(0,0,0,0.05);
+  transform: scale(1.1);
+}
+
+.dark-theme .note-actions a:hover,
+.dark-theme .note-actions button:hover {
+  background: rgba(255,255,255,0.1);
+}

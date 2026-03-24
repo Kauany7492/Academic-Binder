@@ -1,0 +1,74 @@
+.notes-container,
+.note-detail-container,
+.note-form-container {
+  padding: var(--space-lg);
+}
+
+.notes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.notes-filters {
+  margin-bottom: var(--space-lg);
+}
+
+.notes-filters select {
+  width: auto;
+  margin-left: var(--space-sm);
+}
+
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-lg);
+}
+
+.note-detail-header {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.note-content {
+  background: var(--card-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin: var(--space-lg) 0;
+}
+
+.dark-theme .note-content {
+  background: var(--card-dark);
+}
+
+.note-meta {
+  color: var(--primary-medium);
+  font-size: 0.9rem;
+  margin-top: var(--space-lg);
+  border-top: 0.0625rem solid var(--border-light);
+  padding-top: var(--space-md);
+}
+
+.dark-theme .note-meta {
+  color: var(--secondary-light);
+  border-color: var(--border-dark);
+}
+
+.note-form label {
+  display: block;
+  margin-top: var(--space-md);
+  font-weight: 500;
+}
+
+.note-form input,
+.note-form textarea,
+.note-form select {
+  width: 100%;
+  margin-top: var(--space-xs);
+}
+
+.note-form button {
+  margin-top: var(--space-lg);
+}
