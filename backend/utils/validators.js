@@ -1,0 +1,1 @@
+// Este arquivo pode ser usado para validações reutilizáveis, mas atualmente não é necessário.

@@ -1,21 +1,46 @@
 const express = require('express');
-const router = express.Router();
+const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
+const notesRoutes = require('./routes/notes');
+// ... outras rotas (auth, cadernos, etc.)
 
-module.exports = (pool) => {
-  // Rotas públicas de autenticação (não requerem token)
-  const authRouter = require('./auth')(pool);
-  router.use('/auth', authRouter);
+const app = express();
 
-  // Todas as rotas abaixo requerem autenticação
-  const authenticate = require('../middleware/authenticate');
-  router.use(authenticate);
+app.use(cors());
+app.use(express.json());
 
-  // Importa os módulos de recursos, todos já protegidos e filtrados por user_id
-  router.use(require('./cadernos')(pool));
-  router.use(require('./midia')(pool));
-  router.use(require('./books')(pool));
-  router.use(require('./drive')(pool));
-  router.use(require('./planner')(pool));
-
-  return router;
+// Configuração Swagger
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Academic Binder API',
+      version: '1.0.0',
+      description: 'API de anotações acadêmicas com múltiplos métodos',
+    },
+    servers: [{ url: 'http://localhost:3000/api' }],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [{ bearerAuth: [] }],
+  },
+  apis: ['./routes/*.js'], // caminho para os arquivos de rota
 };
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Rotas públicas
+app.use('/api/auth', require('./routes/auth')(pool)); // pool deve ser injetado
+
+// Rotas protegidas
+app.use('/api/notes', notesRoutes);
+// ... outras rotas protegidas (cadernos, pdfs, etc.)
+
+module.exports = app;
