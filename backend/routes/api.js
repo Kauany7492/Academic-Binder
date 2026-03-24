@@ -1,46 +1,25 @@
 const express = require('express');
-const cors = require('cors');
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsdoc = require('swagger-jsdoc');
-const notesRoutes = require('./routes/notes');
-// ... outras rotas (auth, cadernos, etc.)
+const router = express.Router();
+const authenticate = require('../middleware/authenticate');
 
-const app = express();
+module.exports = (pool) => {
+  // Rotas públicas
+  const authRouter = require('./auth')(pool);
+  router.use('/auth', authRouter);
 
-app.use(cors());
-app.use(express.json());
+  // Todas as rotas abaixo requerem autenticação
+  router.use(authenticate);
 
-// Configuração Swagger
-const swaggerOptions = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Academic Binder API',
-      version: '1.0.0',
-      description: 'API de anotações acadêmicas com múltiplos métodos',
-    },
-    servers: [{ url: 'http://localhost:3000/api' }],
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-        },
-      },
-    },
-    security: [{ bearerAuth: [] }],
-  },
-  apis: ['./routes/*.js'], // caminho para os arquivos de rota
+  // Recursos que dependem do pool
+  router.use(require('./cadernos')(pool));
+  router.use(require('./midia')(pool));
+  router.use(require('./books')(pool));
+  router.use(require('./drive')(pool));
+  router.use(require('./planner')(pool));
+
+  // Rota de anotações (não precisa do pool, pois o modelo Note importa o banco diretamente)
+  const notesRoutes = require('./notes');
+  router.use('/notes', notesRoutes);
+
+  return router;
 };
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-// Rotas públicas
-app.use('/api/auth', require('./routes/auth')(pool)); // pool deve ser injetado
-
-// Rotas protegidas
-app.use('/api/notes', notesRoutes);
-// ... outras rotas protegidas (cadernos, pdfs, etc.)
-
-module.exports = app;
