@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const authenticate = require('../middleware/authenticate');
+const authenticate = require('../middleware/authenticate'); // ajuste o caminho se necessário
 
 module.exports = (pool) => {
   // Rotas públicas
   const authRouter = require('./auth')(pool);
   router.use('/auth', authRouter);
 
-  // Todas as rotas abaixo requerem autenticação
+  // Middleware de autenticação – aplicado a todas as rotas abaixo
   router.use(authenticate);
 
   // Recursos que dependem do pool
@@ -17,7 +17,7 @@ module.exports = (pool) => {
   router.use(require('./drive')(pool));
   router.use(require('./planner')(pool));
 
-  // Rota de anotações (não precisa do pool, pois o modelo Note importa o banco diretamente)
+  // Rota de anotações (não precisa do pool, pois o modelo importa diretamente)
   const notesRoutes = require('./notes');
   router.use('/notes', notesRoutes);
 
