@@ -1,25 +1,32 @@
 const express = require('express');
 const router = express.Router();
-const authenticate = require('../middleware/authenticate'); // ajuste o caminho se necessário
+
+// Importe o middleware de autenticação (certifique-se de que o caminho está correto)
+const authenticate = require('../middleware/authenticate');
 
 module.exports = (pool) => {
-  // Rotas públicas
-  const authRouter = require('./auth')(pool);
-  router.use('/auth', authRouter);
+  try {
+    // Rotas públicas
+    const authRouter = require('./auth')(pool);
+    router.use('/auth', authRouter);
 
-  // Middleware de autenticação – aplicado a todas as rotas abaixo
-  router.use(authenticate);
+    // Middleware de autenticação – todas as rotas abaixo serão protegidas
+    router.use(authenticate);
 
-  // Recursos que dependem do pool
-  router.use(require('./cadernos')(pool));
-  router.use(require('./midia')(pool));
-  router.use(require('./books')(pool));
-  router.use(require('./drive')(pool));
-  router.use(require('./planner')(pool));
+    // Recursos que dependem do pool (verifique se cada arquivo exporta uma função)
+    router.use(require('./cadernos')(pool));
+    router.use(require('./midia')(pool));
+    router.use(require('./books')(pool));
+    router.use(require('./drive')(pool));
+    router.use(require('./planner')(pool));
 
-  // Rota de anotações (não precisa do pool, pois o modelo importa diretamente)
-  const notesRoutes = require('./notes');
-  router.use('/notes', notesRoutes);
+    // Rota de anotações (exporta um router diretamente, não precisa do pool)
+    const notesRoutes = require('./notes');
+    router.use('/notes', notesRoutes);
 
-  return router;
+    return router;
+  } catch (err) {
+    console.error('Erro ao carregar rotas:', err);
+    throw err;
+  }
 };
