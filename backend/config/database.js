@@ -18,4 +18,15 @@ const pool = mysql.createPool({
   } : undefined
 });
 
+// Teste de conectividade imediato
+(async () => {
+  try {
+    const connection = await pool.getConnection();
+    console.log('✅ Conectado ao TiDB com sucesso!');
+    connection.release();
+  } catch (err) {
+    console.error('❌ Erro ao conectar ao TiDB:', err.message);
+  }
+})();
+
 module.exports = pool;

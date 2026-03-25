@@ -4,22 +4,21 @@ const cors = require('cors');
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
+const pool = require('./config/database');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // ========== CONFIGURAÇÃO CORS ==========
-// Lista de origens permitidas (incluindo seu domínio personalizado)
 const allowedOrigins = [
-  'http://localhost:3001',                          // desenvolvimento local
-  'https://academic-binder.shop',                   // seu domínio personalizado
-  'https://academic-binder-frontend.onrender.com',  // (opcional) caso ainda use Render
+  'http://localhost:3001',                          
+  'https://academic-binder.shop',                   
+  'https://academic-binder-frontend.onrender.com',  
   'https://www.academic-binder.shop',
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Permite requisições sem origem (ex: ferramentas como Postman)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'A política CORS para este site não permite acesso a partir da origem especificada.';
@@ -27,7 +26,7 @@ app.use(cors({
     }
     return callback(null, true);
   },
-  credentials: true,                               // permite envio de cookies/credenciais
+  credentials: true,                              
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -61,22 +60,20 @@ const pool = mysql.createPool({
 // Teste de conexão
 pool.getConnection()
   .then(connection => {
-    console.log('✅ Conectado ao TiDB com sucesso!');
-    connection.release(); 
+    console.log('✅ Conectado ao TiDB');
+    connection.release();
   })
   .catch(err => {
-    console.error('❌ Erro ao conectar ao TiDB:', err.message);
+    console.error('❌ Erro de conexão com TiDB:', err.message);
     process.exit(1);
   });
 
 // ========== ROTAS ==========
-// Importa o router principal (que combina todos os submódulos)
 const apiRouter = require('./routes/api')(pool);
 app.use('/api', apiRouter);
 
-// Endpoint de health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date() });
+  res.status(200).json({ status: 'OK', timestamp: new Date() });
 });
 
 // ========== INICIALIZAÇÃO DO SERVIDOR ==========

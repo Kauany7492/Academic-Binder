@@ -36,20 +36,21 @@ const swaggerOptions = {
     },
     security: [{ bearerAuth: [] }],
   },
-  apis: ['./routes/*.js'], // caminho relativo ao diretório onde o swagger é executado
+  apis: ['./routes/*.js'], 
 };
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Conexão com o banco (assumindo que você tem um pool exportado de config/database.js)
-const pool = require('./config/database'); // ajuste conforme seu arquivo
+const pool = require('./config/database');
 
-// Rotas da API – passando o pool para quem precisa
 app.use('/api', apiRoutes(pool));
 
-// Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date() });
+  res.status(200).json({ status: 'OK', timestamp: new Date() });
+});
+
+app.listen(port, () => {
+  console.log(`Servidor rodando na porta ${port}`);
 });
 
 module.exports = app;
