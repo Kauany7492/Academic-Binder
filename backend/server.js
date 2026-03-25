@@ -14,7 +14,7 @@ const allowedOrigins = [
   'http://localhost:3001',                          // desenvolvimento local
   'https://academic-binder.shop',                   // seu domínio personalizado
   'https://academic-binder-frontend.onrender.com',  // (opcional) caso ainda use Render
-  // Adicione outras origens se necessário
+  'https://www.academic-binder.shop',
 ];
 
 app.use(cors({
@@ -55,26 +55,19 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
-  ssl: process.env.TIDB_ENABLE_SSL === 'true' ? {
-    rejectUnauthorized: true,
-    minVersion: 'TLSv1.2'
-  } : undefined
+  ssl: process.env.TIDB_ENABLE_SSL === 'true' ? { rejectUnauthorized: true } : undefined
 });
 
-// Teste de conexão (opcional)
-async function testConnection() {
-  try {
-    const connection = await pool.getConnection();
+// Teste de conexão
+pool.getConnection()
+  .then(connection => {
     console.log('✅ Conectado ao TiDB com sucesso!');
-    connection.release();
-  } catch (err) {
+    connection.release(); 
+  })
+  .catch(err => {
     console.error('❌ Erro ao conectar ao TiDB:', err.message);
-  }
-}
-testConnection();
+    process.exit(1);
+  });
 
 // ========== ROTAS ==========
 // Importa o router principal (que combina todos os submódulos)
