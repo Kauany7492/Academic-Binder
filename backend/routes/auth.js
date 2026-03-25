@@ -3,7 +3,7 @@ const router = express.Router();
 const AuthService = require('../services/auth.service');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
-const authenticate = require('../middleware/authenticate'); // <-- importado
+const authenticate = require('../middlewares/auth');
 
 // Limite de tentativas para evitar ataques de força bruta
 const limiter = rateLimit({
@@ -106,11 +106,10 @@ module.exports = (pool) => {
     try {
       const decoded = AuthService.verifyRefreshToken(refreshToken);
       const userId = decoded.userId;
-
-      // Opcional: verificar se o refresh token ainda é válido (ex: em uma blacklist)
       const newAccessToken = AuthService.generateAccessToken(userId);
       res.json({ accessToken: newAccessToken });
     } catch (err) {
+      console.error('Erro no refresh:', err);
       res.status(401).json({ error: 'Refresh token inválido ou expirado' });
     }
   });
@@ -123,7 +122,6 @@ module.exports = (pool) => {
   });
 
   // ========== OBTER DADOS DO USUÁRIO AUTENTICADO ==========
-  // Esta rota deve ser protegida, então usamos o middleware authenticate
   router.get('/me', authenticate, async (req, res) => {
     try {
       const [users] = await pool.query(
